@@ -1,0 +1,20 @@
+name: "nakama"
+logger:
+  level: "DEBUG"
+
+session:
+  token_expiry_sec: 7200
+
+console:
+  port: 7351
+  username: "admin"
+  password: "password"
+
+runtime:
+  js_entrypoint: "index.js"
+  path: "./data/modules"
+
+database:
+  address:
+    - "root@cockroachdb:26257"    
+    

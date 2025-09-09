@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "outFile": "./build/index.js",
+    "skipLibCheck": true,
+    "typeRoots": [
+      "./node_modules"
+    ]
+  },
+  "include": ["modules/**/*.ts"],
+  "exclude": ["node_modules"]
+}
