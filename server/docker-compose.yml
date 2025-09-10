@@ -2,16 +2,24 @@ version: '3.7'
 
 services:
   cockroachdb:
-    image: cockroachdb/cockroach:v22.2.8
-    command: start-single-node --insecure
+    image: cockroachdb/cockroach:latest-v23.1
+    command: start-single-node --insecure --store=attrs=ssd,path=/var/lib/cockroach/
+    restart: "no"
     volumes:
-      - cockroachdb-data:/cockroach/cockroach-data
+      - data:/var/lib/cockroach
+    expose:
+      - "8080"
+      - "26257"
     ports:
       - "26257:26257"
       - "8080:8080"
-
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health?ready=1"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
   nakama:
-    image: heroiclabs/nakama:3.30.0
+    image: heroiclabs/nakama:3.31.0
     entrypoint:
       - "/bin/sh"
       - "-ecx"
@@ -20,17 +28,29 @@ services:
         exec /nakama/nakama --name nakama1
         --database.address root@cockroachdb:26257
         --config /nakama/config/nakama-config.yml
-    restart: unless-stopped
+    restart: no
     links:
       - "cockroachdb:db"
     depends_on:
-      - cockroachdb
+      cockroachdb:
+        condition: service_healthy
     volumes:
       - ./nakama-config.yml:/nakama/config/nakama-config.yml
       - ./build:/nakama/data/modules
+    expose:
+      - "7349"
+      - "7350"
+      - "7351"
+      - "9100"
     ports:
+      - "7349:7349"
       - "7350:7350"
       - "7351:7351"
+    healthcheck:
+      test: ["CMD", "/nakama/nakama", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  cockroachdb-data:
+  data:

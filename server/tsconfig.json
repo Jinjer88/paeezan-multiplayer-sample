@@ -1,15 +1,20 @@
 {
+  "files": [
+    "./src/main.ts",
+    "./src/match.ts",
+    "./src/matchmaker.ts"
+  ],
   "compilerOptions": {
     "target": "es5",
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "strict": true,
+    "removeComments": true,
+    "noUnusedLocals": true,
     "outFile": "./build/index.js",
-    "skipLibCheck": true,
     "typeRoots": [
       "./node_modules"
-    ]
-  },
-  "include": ["modules/**/*.ts"],
-  "exclude": ["node_modules"]
+    ],
+    "skipLibCheck": true
+  }
 }
