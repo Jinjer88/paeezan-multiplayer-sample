@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,6 +8,10 @@ public class GameController : ScriptableObject
     public string MatchId { get; set; }
     public string MatchCode { get; set; }
     public List<string> PlayerNames { get; set; }
+
+    public void StartGame()
+    {
+    }
 
     private void OnEnable()
     {

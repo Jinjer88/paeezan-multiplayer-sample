@@ -16,18 +16,31 @@ var InitModule = function (ctx, logger, nk, initializer) {
 };
 function matchInit(ctx, logger, nk, params) {
     logger.debug('Lobby match created');
+    var state = { presences: {}, ready: {}, gameStarted: false };
     return {
-        state: { presences: {} },
+        state: state,
         tickRate: 1,
-        label: ""
+        label: "1v1"
     };
 }
 ;
 function matchJoin(ctx, logger, nk, dispatcher, tick, state, presences) {
     presences.forEach(function (presence) {
         state.presences[presence.userId] = presence;
+        state.ready[presence.userId] = false;
         logger.debug('%q joined Lobby match', presence.userId);
     });
+    var playerNames = [];
+    for (var userId in state.presences) {
+        playerNames.push(state.presences[userId].username);
+    }
+    dispatcher.broadcastMessage(4, JSON.stringify({
+        type: "lobby_update",
+        players: playerNames
+    }));
+    if (Object.keys(state.presences).length === 2) {
+        dispatcher.broadcastMessage(1, JSON.stringify({ type: "match_ready" }));
+    }
     return {
         state: state
     };
@@ -44,11 +57,37 @@ function matchLeave(ctx, logger, nk, dispatcher, tick, state, presences) {
         state.presences[presence.userId] = presence;
         logger.debug('%q left Lobby match', presence.userId);
     });
+    if (presences.length === 0) {
+        logger.debug('No players left in the match, terminating.');
+        return null;
+    }
     return {
         state: state
     };
 }
 function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
+    for (var _i = 0, messages_1 = messages; _i < messages_1.length; _i++) {
+        var m = messages_1[_i];
+        if (m.opCode === 2) {
+            state.ready[m.sender.userId] = true;
+            logger.info("Player %s ready", m.sender.userId);
+        }
+    }
+    if (!state.started) {
+        var allReady = true;
+        for (var userId in state.presences) {
+            if (!state.ready[userId]) {
+                allReady = false;
+                break;
+            }
+        }
+        if (!allReady) {
+            return { state: state };
+        }
+        logger.info("All players ready, starting game");
+        state.started = true;
+        dispatcher.broadcastMessage(3, JSON.stringify({ type: "start_match", countdown: 3 }));
+    }
     return {
         state: state
     };
@@ -66,17 +105,17 @@ function matchTerminate(ctx, logger, nk, dispatcher, tick, state, graceSeconds) 
         state: state
     };
 }
-var COLLECTION = "rooms";
-var CODE_SIZE = 4;
-var ADMIN_ID = "00000000-0000-0000-0000-000000000000";
+var Collection = "rooms";
+var CodeSize = 4;
+var SystemID = "00000000-0000-0000-0000-000000000000";
 var rpcCreateMatch = function (ctx, logger, nk, payload) {
     logger.info("rpcCreateMatch called by user %s", ctx.userId);
     var code = generateCode();
     var matchId = nk.matchCreate(MatchModuleName, {});
     var record = {
-        collection: COLLECTION,
+        collection: Collection,
         key: code,
-        userId: ADMIN_ID,
+        userId: SystemID,
         value: { matchId: matchId },
         permissionRead: 2,
         permissionWrite: 1
@@ -88,10 +127,13 @@ var rpcCreateMatch = function (ctx, logger, nk, payload) {
 var rpcJoinMatch = function (ctx, logger, nk, payload) {
     var data = JSON.parse(payload);
     var code = data.code;
-    var objects = nk.storageRead([{ collection: COLLECTION, key: code, userId: ADMIN_ID }]);
+    var objects = nk.storageRead([{ collection: Collection, key: code, userId: SystemID }]);
     if (objects.length === 0) {
         try {
-            nk.matchGet(code);
+            var matchData = nk.matchGet(code);
+            if (matchData && matchData.size > 1) {
+                throw Error("Match is full");
+            }
             logger.info("Code %s is a valid matchId", code);
             return JSON.stringify({ matchId: code });
         }
@@ -102,19 +144,20 @@ var rpcJoinMatch = function (ctx, logger, nk, payload) {
     }
     var matchId = objects[0].value.matchId;
     logger.info("Player %s requested join for code %s -> match %s", ctx.userId, code, matchId);
+    cleanupRoom(nk, logger, code);
     return JSON.stringify({ matchId: matchId });
 };
 function generateCode() {
     var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     var code = "";
-    for (var i = 0; i < CODE_SIZE; i++) {
+    for (var i = 0; i < CodeSize; i++) {
         code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return code;
 }
 function cleanupRoom(nk, logger, code) {
     try {
-        nk.storageDelete([{ collection: COLLECTION, key: code, userId: ADMIN_ID }]);
+        nk.storageDelete([{ collection: Collection, key: code, userId: SystemID }]);
         logger.info("Deleted room entry for code %s", code);
     }
     catch (err) {
