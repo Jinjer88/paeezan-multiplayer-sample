@@ -16,6 +16,11 @@ public class GameController : ScriptableObject
         GameStateHandler.StartGame();
     }
 
+    public void SpawnUnit(string unitType)
+    {
+        GameStateHandler.RequestUnitSpawn(unitType);
+    }
+
     private void OnEnable()
     {
         MatchCode = string.Empty;

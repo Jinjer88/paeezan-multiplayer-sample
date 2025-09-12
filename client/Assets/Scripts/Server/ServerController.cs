@@ -108,7 +108,7 @@ public class ServerController : ScriptableObject
         }
     }
 
-    public async Task<IMatch> JoinMatchWithCode(string matchCode)
+    public async Task<string> GetMatchIDWithCode(string matchCode)
     {
         try
         {
@@ -116,9 +116,7 @@ public class ServerController : ScriptableObject
             var result = await Client.RpcAsync(Session, id: "join_match", payload: JsonUtility.ToJson(payload));
             Debug.Log($"ServerController - JoinMatchWithCode, sent join_match rpc, result payload: {result.Payload}");
             string matchId = JsonUtility.FromJson<JoinMatchResponseModel>(result.Payload).matchId;
-            var match = await Socket.JoinMatchAsync(matchId);
-            Debug.Log($"ServerController - JoinMatchWithCode, joined match with code: {matchCode}");
-            return match;
+            return matchId;
         }
         catch (Exception ex)
         {
@@ -194,11 +192,36 @@ public class MatchGameConfigMessageModel
     public GameConfig config;
 }
 
+[Serializable]
+public class MatchSpawnUnitRequestModel
+{
+    public string unitType;
+}
+
+[Serializable]
+public class MatchSpawnUnitResponseModel
+{
+    public string type;
+    public Unit unit;
+}
+
 public enum OpCode
 {
     MatchConfig = 0,
     MatchReady = 1,
-    SignalReady = 2,
+    ReadySignal = 2,
     StartMatch = 3,
-    LobbyUpdate = 4
+    LobbyUpdate = 4,
+    SpawnUnit = 5,
+    UnitPositions = 6
+}
+
+[Serializable]
+public class Unit
+{
+    public float position;
+    public int health;
+    public float attackTimer;
+    public string type;
+    public string owner;
 }

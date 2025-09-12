@@ -69,6 +69,7 @@ public class UILobbyPage : UIPage
 
     private void OnMatchState(IMatchState matchState)
     {
+        Debug.Log($"UILobbyPage.OnMatchState - opCode: {matchState.OpCode}");
         string stateJson = System.Text.Encoding.UTF8.GetString(matchState.State);
         OpCode code = (OpCode)matchState.OpCode;
         switch (code)

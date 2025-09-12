@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 public class UIMainMenuPage : UIPage
@@ -119,7 +120,10 @@ public class UIMainMenuPage : UIPage
             return;
         }
 
-        var match = await serverController.JoinMatchWithCode(matchCode);
+        var matchId = await serverController.GetMatchIDWithCode(matchCode);
+        gameController.MatchId = matchId;
+        gameController.MatchCode = matchCode;
+        var match = await serverController.JoinMatchWithId(matchId);
 
         joinMatch.interactable = true;
         createMatch.interactable = true;
@@ -129,8 +133,6 @@ public class UIMainMenuPage : UIPage
             return;
         }
 
-        gameController.MatchCode = matchCode;
-        gameController.MatchId = match.Id;
         uiController.OpenPage<UILobbyPage>();
     }
 }

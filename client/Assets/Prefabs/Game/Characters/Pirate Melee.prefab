@@ -2017,6 +2017,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5493165196417064171}
+  - component: {fileID: 2857741176637619481}
   m_Layer: 0
   m_Name: Pirate Melee
   m_TagString: Untagged
@@ -2040,3 +2041,22 @@ Transform:
   - {fileID: 6166868359800036163}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2857741176637619481
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6864590965504195760}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 422da2aa0cd5d5a4ab03f6072e222306, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 0}
+  meshRenderer: {fileID: 0}
+  currentState: {fileID: 0}
+  attackingState: {fileID: 11400000, guid: 1f419ba606842df4ab694aedd7e8beec, type: 2}
+  movingState: {fileID: 11400000, guid: 9dd2aadd35a908743aca4f43aa93c424, type: 2}
+  idleState: {fileID: 11400000, guid: ccc47726d3635214cb8a6e1fd340fb76, type: 2}
+  dyingState: {fileID: 11400000, guid: 8d4abd08aa150484da66d8ab3677dae9, type: 2}

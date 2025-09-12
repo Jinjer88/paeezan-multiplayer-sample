@@ -26,9 +26,11 @@ public class UIMatchPage : UIPage
 
     private void SpawnMelee()
     {
+        gameController.SpawnUnit("melee");
     }
 
     private void SpawnRanged()
     {
+        gameController.SpawnUnit("ranged");
     }
 }

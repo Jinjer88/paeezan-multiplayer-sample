@@ -20,8 +20,9 @@ function matchInit(ctx, logger, nk, params) {
     if (!config) {
         throw new Error("Failed to load game config");
     }
-    var state = { presences: {}, ready: {}, gameStarted: false, gameConfig: config };
-    return { state: state, tickRate: 4, label: "1v1" };
+    var state = { presences: {}, ready: {}, gameStarted: false, gameConfig: config, units: [], towers: {}, host: ctx.userId, manas: {}, meleeCooldowns: {}, rangedCooldowns: {} };
+    logger.debug('Match state created, host: %s', state.host);
+    return { state: state, tickRate: 5, label: "1v1" };
 }
 ;
 function matchJoin(ctx, logger, nk, dispatcher, tick, state, presences) {
@@ -50,48 +51,59 @@ function matchJoinAttempt(ctx, logger, nk, dispatcher, tick, state, presence, me
 }
 function matchLeave(ctx, logger, nk, dispatcher, tick, state, presences) {
     presences.forEach(function (presence) {
-        state.presences[presence.userId] = presence;
-        logger.debug('%q left Lobby match', presence.userId);
+        delete state.presences[presence.userId];
+        logger.debug('%q left the match', presence.username);
     });
-    if (presences.length === 0) {
-        logger.debug('No players left in the match, terminating.');
+    if (Object.keys(state.presences).length === 0) {
+        logger.debug('All players left the match, terminating');
         return null;
     }
     return { state: state };
 }
 function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
-    if (!state.gameStarted)
-        return { state: state };
     for (var _i = 0, messages_1 = messages; _i < messages_1.length; _i++) {
         var m = messages_1[_i];
         if (m.opCode === 2) {
             state.ready[m.sender.userId] = true;
-            logger.info("Player %s ready", m.sender.userId);
+            logger.info("Player %s ready", m.sender.username);
         }
     }
-    if (!state.started) {
-        var allReady = true;
+    if (!state.gameStarted && Object.keys(state.presences).length === 2 && allReady(state)) {
+        logger.info("All players ready, starting game");
+        state.gameStarted = true;
         for (var userId in state.presences) {
-            if (!state.ready[userId]) {
-                allReady = false;
-                break;
+            state.manas[userId] = 10;
+            state.towers[userId] = state.gameConfig.towers.health;
+            state.meleeCooldowns[userId] = 0;
+            state.rangedCooldowns[userId] = 0;
+        }
+        dispatcher.broadcastMessage(3, JSON.stringify({ type: "start_match", countdown: 3 }));
+    }
+    if (state.gameStarted) {
+        for (var _a = 0, messages_2 = messages; _a < messages_2.length; _a++) {
+            var m = messages_2[_a];
+            if (m.opCode === 5) {
+                var data = JSON.parse(nk.binaryToString(m.data));
+                if (data.unitType) {
+                    var unit = {
+                        position: m.sender.userId === state.host ? -5 : 5,
+                        health: state.gameConfig.units[data.unitType].health,
+                        attackTimer: 0,
+                        type: data.unitType,
+                        owner: m.sender.userId,
+                    };
+                    state.units.push(unit);
+                    dispatcher.broadcastMessage(5, JSON.stringify({ type: "new_unit", unit: unit }));
+                    logger.info("New unit added: %s by %s", data.unitType, m.sender.username);
+                }
             }
         }
-        if (!allReady) {
-            return { state: state };
-        }
-        logger.info("All players ready, starting game");
-        state.started = true;
-        dispatcher.broadcastMessage(3, JSON.stringify({ type: "start_match", countdown: 3 }));
     }
     return { state: state };
 }
 function matchSignal(ctx, logger, nk, dispatcher, tick, state, data) {
     logger.debug('Lobby match signal received: ' + data);
-    return {
-        state: state,
-        data: "Lobby match signal received: " + data
-    };
+    return { state: state, data: "Lobby match signal received: " + data };
 }
 function matchTerminate(ctx, logger, nk, dispatcher, tick, state, graceSeconds) {
     logger.debug('Lobby match terminated');
@@ -104,8 +116,16 @@ function loadConfig(logger, nk) {
     }
     catch (e) {
         logger.error("Failed to load config: %s", e);
-        return undefined;
+        return null;
     }
+}
+function allReady(state) {
+    for (var userId in state.ready) {
+        if (!state.ready[userId]) {
+            return false;
+        }
+    }
+    return true;
 }
 var Collection = "rooms";
 var CodeSize = 4;
