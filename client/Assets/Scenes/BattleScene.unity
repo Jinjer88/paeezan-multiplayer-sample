@@ -3522,6 +3522,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   uiController: {fileID: 11400000, guid: f5a389575eb065747ad24f57a9fbab0f, type: 2}
+  gameController: {fileID: 11400000, guid: fce394075aa56774d847f4b802b19f7c, type: 2}
   meleeCard: {fileID: 714413988}
   rangedCard: {fileID: 553126114}
   manaProgress: {fileID: 14911377}
@@ -4346,6 +4347,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9dfb25773b162444bab65bcac5f7d540, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  serverController: {fileID: 11400000, guid: 3383c926511930e4c8c06a7c81af59a8, type: 2}
   gameController: {fileID: 11400000, guid: fce394075aa56774d847f4b802b19f7c, type: 2}
   uiController: {fileID: 11400000, guid: f5a389575eb065747ad24f57a9fbab0f, type: 2}
 --- !u!4 &1275872083

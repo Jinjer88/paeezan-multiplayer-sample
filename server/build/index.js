@@ -16,19 +16,20 @@ var InitModule = function (ctx, logger, nk, initializer) {
 };
 function matchInit(ctx, logger, nk, params) {
     logger.debug('Lobby match created');
-    var state = { presences: {}, ready: {}, gameStarted: false };
-    return {
-        state: state,
-        tickRate: 1,
-        label: "1v1"
-    };
+    var config = loadConfig(logger, nk);
+    if (!config) {
+        throw new Error("Failed to load game config");
+    }
+    var state = { presences: {}, ready: {}, gameStarted: false, gameConfig: config };
+    return { state: state, tickRate: 4, label: "1v1" };
 }
 ;
 function matchJoin(ctx, logger, nk, dispatcher, tick, state, presences) {
     presences.forEach(function (presence) {
         state.presences[presence.userId] = presence;
         state.ready[presence.userId] = false;
-        logger.debug('%q joined Lobby match', presence.userId);
+        dispatcher.broadcastMessage(0, JSON.stringify({ type: "match_config", config: state.gameConfig }), [presence]);
+        logger.debug('%q joined Lobby match, config sent', presence.userId);
     });
     var playerNames = [];
     for (var userId in state.presences) {
@@ -41,16 +42,11 @@ function matchJoin(ctx, logger, nk, dispatcher, tick, state, presences) {
     if (Object.keys(state.presences).length === 2) {
         dispatcher.broadcastMessage(1, JSON.stringify({ type: "match_ready" }));
     }
-    return {
-        state: state
-    };
+    return { state: state };
 }
 function matchJoinAttempt(ctx, logger, nk, dispatcher, tick, state, presence, metadata) {
     logger.debug('%q attempted to join Lobby match', ctx.userId);
-    return {
-        state: state,
-        accept: true
-    };
+    return { state: state, accept: true };
 }
 function matchLeave(ctx, logger, nk, dispatcher, tick, state, presences) {
     presences.forEach(function (presence) {
@@ -61,11 +57,11 @@ function matchLeave(ctx, logger, nk, dispatcher, tick, state, presences) {
         logger.debug('No players left in the match, terminating.');
         return null;
     }
-    return {
-        state: state
-    };
+    return { state: state };
 }
 function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
+    if (!state.gameStarted)
+        return { state: state };
     for (var _i = 0, messages_1 = messages; _i < messages_1.length; _i++) {
         var m = messages_1[_i];
         if (m.opCode === 2) {
@@ -88,9 +84,7 @@ function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
         state.started = true;
         dispatcher.broadcastMessage(3, JSON.stringify({ type: "start_match", countdown: 3 }));
     }
-    return {
-        state: state
-    };
+    return { state: state };
 }
 function matchSignal(ctx, logger, nk, dispatcher, tick, state, data) {
     logger.debug('Lobby match signal received: ' + data);
@@ -101,9 +95,17 @@ function matchSignal(ctx, logger, nk, dispatcher, tick, state, data) {
 }
 function matchTerminate(ctx, logger, nk, dispatcher, tick, state, graceSeconds) {
     logger.debug('Lobby match terminated');
-    return {
-        state: state
-    };
+    return { state: state };
+}
+function loadConfig(logger, nk) {
+    try {
+        var raw = nk.fileRead("./game-config.json");
+        return JSON.parse(raw);
+    }
+    catch (e) {
+        logger.error("Failed to load config: %s", e);
+        return undefined;
+    }
 }
 var Collection = "rooms";
 var CodeSize = 4;

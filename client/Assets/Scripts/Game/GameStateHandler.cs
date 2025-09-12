@@ -1,8 +1,11 @@
+using Nakama;
+using System;
 using System.Collections;
 using UnityEngine;
 
 public class GameStateHandler : MonoBehaviour
 {
+    [SerializeField] private ServerController serverController;
     [SerializeField] private GameController gameController;
     [SerializeField] private UIController uiController;
 
@@ -34,7 +37,18 @@ public class GameStateHandler : MonoBehaviour
 
     public void StartGame()
     {
+        serverController.OnMatchState += OnMatchState;
         StartCoroutine(StartGameCoroutine());
+    }
+
+    public void EndGame()
+    {
+        serverController.OnMatchState -= OnMatchState;
+    }
+
+    private void OnMatchState(IMatchState state)
+    {
+
     }
 
     public void SwitchState(GameState newState)

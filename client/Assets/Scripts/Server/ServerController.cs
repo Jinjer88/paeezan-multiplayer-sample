@@ -180,15 +180,23 @@ public class MatchStateModel
     public bool gameStarted;
 }
 
+[Serializable]
 public class MatchLobbyUpdateMessageModel
 {
     public string type;
     public string[] players;
 }
 
+[Serializable]
+public class MatchGameConfigMessageModel
+{
+    public string type;
+    public GameConfig config;
+}
+
 public enum OpCode
 {
-    None = 0,
+    MatchConfig = 0,
     MatchReady = 1,
     SignalReady = 2,
     StartMatch = 3,

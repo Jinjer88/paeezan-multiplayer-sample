@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class UIMatchPage : UIPage
 {
+    [SerializeField] private GameController gameController;
     [SerializeField] private UICardItem meleeCard;
     [SerializeField] private UICardItem rangedCard;
     [SerializeField] private Image manaProgress;
@@ -12,8 +13,8 @@ public class UIMatchPage : UIPage
 
     public override void OnPageOpen()
     {
-        meleeCard.InitCard(3, SpawnMelee);
-        rangedCard.InitCard(2, SpawnRanged);
+        meleeCard.InitCard(gameController.GameConfig.units.melee.cost, SpawnMelee);
+        rangedCard.InitCard(gameController.GameConfig.units.ranged.cost, SpawnRanged);
         manaProgress.fillAmount = 1;
         manaCountText.text = "10/10";
     }

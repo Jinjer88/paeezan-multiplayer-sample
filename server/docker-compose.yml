@@ -37,6 +37,7 @@ services:
     volumes:
       - ./nakama-config.yml:/nakama/config/nakama-config.yml
       - ./build:/nakama/data/modules
+      - ./game-config.json:/nakama/data/modules/game-config.json
     expose:
       - "7349"
       - "7350"
@@ -51,6 +52,5 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
 volumes:
   data:

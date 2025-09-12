@@ -45,6 +45,8 @@ public class UILobbyPage : UIPage
     {
         goBackButton.onClick.RemoveListener(GoBack);
         matchCodeText.text = string.Empty;
+        serverController.OnPlayerJoined -= OnPlayerJoined;
+        serverController.OnMatchState -= OnMatchState;
     }
 
     private async void GoBack()
@@ -68,17 +70,12 @@ public class UILobbyPage : UIPage
     private void OnMatchState(IMatchState matchState)
     {
         string stateJson = System.Text.Encoding.UTF8.GetString(matchState.State);
-        Debug.Log($"OnMatchState - code: {matchState.OpCode}, state: {stateJson}");
         OpCode code = (OpCode)matchState.OpCode;
         switch (code)
         {
-            case OpCode.None:
-                break;
-            case OpCode.MatchReady:
-                break;
-            case OpCode.SignalReady:
-                break;
-            case OpCode.StartMatch:
+            case OpCode.MatchConfig:
+                var matchConfig = JsonParser.FromJson<MatchGameConfigMessageModel>(stateJson);
+                gameController.GameConfig = matchConfig.config;
                 break;
             case OpCode.LobbyUpdate:
                 var lobbyUpdate = JsonParser.FromJson<MatchLobbyUpdateMessageModel>(stateJson);

@@ -1,0 +1,22 @@
+{
+    "towers": {
+        "health": 100,
+        "attack": 5
+    },
+    "units": {
+        "melee": {
+            "health": 20,
+            "attack": 3,
+            "cost": 2,
+            "speed": 1,
+            "range": 1
+        },
+        "ranged": {
+            "health": 10,
+            "attack": 2,
+            "cost": 3,
+            "speed": 2,
+            "range": 2
+        }
+    }
+}
