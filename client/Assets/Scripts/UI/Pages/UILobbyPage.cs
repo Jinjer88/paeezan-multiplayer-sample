@@ -108,7 +108,7 @@ public class UILobbyPage : UIPage
 
     private void StartGame()
     {
-        matchCodeText.text = string.Empty;
+        matchCodeText.text = $"Battle starting soon...";
         goBackButton.interactable = false;
         gameController.StartGame();
     }

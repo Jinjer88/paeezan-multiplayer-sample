@@ -4,7 +4,7 @@ function matchInit(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
     const state: MatchState = { presences: {}, ready: {}, gameStarted: false };
     return {
         state,
-        tickRate: 1,
+        tickRate: 4,
         label: "1v1"
     };
 };
@@ -62,6 +62,9 @@ function matchLeave(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunt
 function matchLoop(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, messages: nkruntime.MatchMessage[]): { state: nkruntime.MatchState } | null {
     // logger.debug('Lobby match loop executed');
 
+    if (!state.gameStarted)
+        return { state };
+
     for (const m of messages) {
         if (m.opCode === 2) {
             state.ready[m.sender.userId] = true;
@@ -87,9 +90,7 @@ function matchLoop(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
         dispatcher.broadcastMessage(3, JSON.stringify({ type: "start_match", countdown: 3 }));
     }
 
-    return {
-        state
-    };
+    return { state };
 }
 
 function matchSignal(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, data: string): { state: nkruntime.MatchState, data?: string } | null {
