@@ -1,3 +1,5 @@
+const tickRate = 5;
+
 function matchInit(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, params: { [key: string]: string }): { state: nkruntime.MatchState, tickRate: number, label: string } {
     logger.debug('Lobby match created');
 
@@ -8,7 +10,7 @@ function matchInit(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
 
     const state: GameState = { presences: {}, ready: {}, gameStarted: false, gameConfig: config, units: [], towers: {}, host: params.host, manas: {}, meleeCooldowns: {}, rangedCooldowns: {} };
     logger.debug('Match state created, host: %s', state.host);
-    return { state, tickRate: 5, label: "1v1" };
+    return { state, tickRate: tickRate, label: "1v1" };
 };
 
 function matchJoin(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, presences: nkruntime.Presence[]): { state: nkruntime.MatchState } | null {
@@ -93,6 +95,8 @@ function matchLoop(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
                 }
             }
         }
+
+        updateUnitPositions(state, dispatcher);
     }
 
     return { state };
@@ -118,6 +122,10 @@ function loadConfig(logger: nkruntime.Logger, nk: nkruntime.Nakama): GameConfig 
         logger.error("Failed to load config: %s", e);
         return null;
     }
+}
+
+function updateUnitPositions(state: nkruntime.MatchState, dispatcher: nkruntime.MatchDispatcher) {
+
 }
 
 function allReady(state: nkruntime.MatchState): boolean {
