@@ -11,6 +11,8 @@ public class GameStateHandler : MonoBehaviour
     [SerializeField] private UIController uiController;
     [SerializeField] private Pirate meleeUnit;
     [SerializeField] private Pirate rangedUnit;
+    [SerializeField] private Material blueMat;
+    [SerializeField] private Material redMat;
 
     private GameState currentGameState;
 
@@ -38,9 +40,18 @@ public class GameStateHandler : MonoBehaviour
         }
     }
 
-    public void StartGame()
+    private void OnEnable()
     {
         serverController.OnMatchState += OnMatchState;
+    }
+
+    private void OnDisable()
+    {
+        serverController.OnMatchState -= OnMatchState;
+    }
+
+    public void StartGame()
+    {
         StartCoroutine(StartGameCoroutine());
         Debug.Log($"GameStateHandler - StartGame, sending ready signal to server...");
         serverController.Socket.SendMatchStateAsync(gameController.MatchId, (long)OpCode.ReadySignal, string.Empty);
@@ -48,27 +59,31 @@ public class GameStateHandler : MonoBehaviour
 
     public void EndGame()
     {
-        serverController.OnMatchState -= OnMatchState;
     }
 
     public void RequestUnitSpawn(string unitType)
     {
         var request = new MatchSpawnUnitRequestModel() { unitType = unitType };
         Debug.Log($"GameStateHandler - RequestUnitSpawn, sending unit spawn request for {unitType}");
-        serverController.Socket.SendMatchStateAsync(gameController.MatchId, (long)OpCode.SpawnUnit, JsonWriter.ToJson(request));
+        serverController.Socket.SendMatchStateAsync(gameController.MatchId, (long)OpCode.SpawnUnitRequest, JsonWriter.ToJson(request));
     }
 
     private void OnMatchState(IMatchState matchState)
     {
         Debug.Log($"OnMatchState - opCode: {matchState.OpCode}");
         string stateJson = System.Text.Encoding.UTF8.GetString(matchState.State);
+        Debug.Log($"OnMatchState - state json: {stateJson}");
         OpCode code = (OpCode)matchState.OpCode;
         if (code == OpCode.SpawnUnit)
         {
             var unitData = JsonParser.FromJson<MatchSpawnUnitResponseModel>(stateJson).unit;
+            bool isMine = unitData.owner == serverController.Session.UserId;
             Pirate unit = unitData.type == "melee" ? meleeUnit : rangedUnit;
-            float rotation = unitData.position < 0 ? 0 : 180f;
-            var pirateUnit = Instantiate(unit, new Vector3(0, 0, unitData.position), Quaternion.Euler(0, rotation, 0), transform);
+            float rotation = isMine ? 0 : 180f;
+            var mat = isMine ? blueMat : redMat;
+            float position = isMine ? -5f : 5f;
+            var pirateUnit = Instantiate(unit, new Vector3(0, 0, position), Quaternion.Euler(0, rotation, 0), transform);
+            pirateUnit.meshRenderer.material = mat;
         }
     }
 

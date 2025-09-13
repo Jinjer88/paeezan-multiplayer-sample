@@ -212,8 +212,9 @@ public enum OpCode
     ReadySignal = 2,
     StartMatch = 3,
     LobbyUpdate = 4,
-    SpawnUnit = 5,
-    UnitPositions = 6
+    SpawnUnitRequest = 5,
+    SpawnUnit = 6,
+    UnitPositions = 7
 }
 
 [Serializable]

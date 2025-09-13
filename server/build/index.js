@@ -20,7 +20,7 @@ function matchInit(ctx, logger, nk, params) {
     if (!config) {
         throw new Error("Failed to load game config");
     }
-    var state = { presences: {}, ready: {}, gameStarted: false, gameConfig: config, units: [], towers: {}, host: ctx.userId, manas: {}, meleeCooldowns: {}, rangedCooldowns: {} };
+    var state = { presences: {}, ready: {}, gameStarted: false, gameConfig: config, units: [], towers: {}, host: params.host, manas: {}, meleeCooldowns: {}, rangedCooldowns: {} };
     logger.debug('Match state created, host: %s', state.host);
     return { state: state, tickRate: 5, label: "1v1" };
 }
@@ -93,7 +93,7 @@ function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
                         owner: m.sender.userId,
                     };
                     state.units.push(unit);
-                    dispatcher.broadcastMessage(5, JSON.stringify({ type: "new_unit", unit: unit }));
+                    dispatcher.broadcastMessage(6, JSON.stringify({ type: "new_unit", unit: unit }));
                     logger.info("New unit added: %s by %s", data.unitType, m.sender.username);
                 }
             }
@@ -133,7 +133,7 @@ var SystemID = "00000000-0000-0000-0000-000000000000";
 var rpcCreateMatch = function (ctx, logger, nk, payload) {
     logger.info("rpcCreateMatch called by user %s", ctx.userId);
     var code = generateCode();
-    var matchId = nk.matchCreate(MatchModuleName, {});
+    var matchId = nk.matchCreate(MatchModuleName, { "host": ctx.userId });
     var record = {
         collection: Collection,
         key: code,

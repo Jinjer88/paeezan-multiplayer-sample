@@ -5,7 +5,7 @@ const SystemID = "00000000-0000-0000-0000-000000000000";
 let rpcCreateMatch: nkruntime.RpcFunction = function (ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, payload: string): string {
     logger.info("rpcCreateMatch called by user %s", ctx.userId);
     const code = generateCode();
-    const matchId = nk.matchCreate(MatchModuleName, {});
+    const matchId = nk.matchCreate(MatchModuleName, { "host": ctx.userId });
 
     const record: nkruntime.StorageWriteRequest = {
         collection: Collection,

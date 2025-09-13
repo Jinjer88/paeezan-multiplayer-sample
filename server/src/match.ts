@@ -6,7 +6,7 @@ function matchInit(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
         throw new Error("Failed to load game config");
     }
 
-    const state: GameState = { presences: {}, ready: {}, gameStarted: false, gameConfig: config, units: [], towers: {}, host: ctx.userId, manas: {}, meleeCooldowns: {}, rangedCooldowns: {} };
+    const state: GameState = { presences: {}, ready: {}, gameStarted: false, gameConfig: config, units: [], towers: {}, host: params.host, manas: {}, meleeCooldowns: {}, rangedCooldowns: {} };
     logger.debug('Match state created, host: %s', state.host);
     return { state, tickRate: 5, label: "1v1" };
 };
@@ -88,7 +88,7 @@ function matchLoop(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
                         owner: m.sender.userId,
                     };
                     state.units.push(unit);
-                    dispatcher.broadcastMessage(5, JSON.stringify({ type: "new_unit", unit }));
+                    dispatcher.broadcastMessage(6, JSON.stringify({ type: "new_unit", unit }));
                     logger.info("New unit added: %s by %s", data.unitType, m.sender.username);
                 }
             }

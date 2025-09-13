@@ -4354,6 +4354,8 @@ MonoBehaviour:
     type: 3}
   rangedUnit: {fileID: 2310758812270297195, guid: 23f85232091b8cf4d8ee6e11dcbb4b12,
     type: 3}
+  blueMat: {fileID: 2100000, guid: 417b0a71b84d57849878dd3bbbb57127, type: 2}
+  redMat: {fileID: 2100000, guid: fd311a5878d1a144f95a0777a971d416, type: 2}
 --- !u!4 &1275872083
 Transform:
   m_ObjectHideFlags: 0
@@ -7275,7 +7277,7 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: fdbd16d90d81e6a42867f201cdad505f,
         type: 3}
       propertyPath: m_LocalScale.x
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: fdbd16d90d81e6a42867f201cdad505f,
         type: 3}
@@ -7285,7 +7287,7 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: fdbd16d90d81e6a42867f201cdad505f,
         type: 3}
       propertyPath: m_LocalScale.z
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: fdbd16d90d81e6a42867f201cdad505f,
         type: 3}
