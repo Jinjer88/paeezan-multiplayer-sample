@@ -1,3 +1,4 @@
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Events;
@@ -15,5 +16,15 @@ public class UICardItem : MonoBehaviour
         useButton.onClick.AddListener(onButtonPress);
         manaCostText.text = manaCost.ToString();
         cooldownProgressImage.fillAmount = 0;
+    }
+
+    public void StartCooldown(float cooldownTime)
+    {
+        useButton.interactable = false;
+        cooldownProgressImage.fillAmount = 1;
+        cooldownProgressImage.DOFillAmount(0, cooldownTime).SetEase(Ease.Linear).OnComplete(() =>
+        {
+            useButton.interactable = true;
+        });
     }
 }

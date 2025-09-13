@@ -10,6 +10,9 @@ public class GameController : ScriptableObject
     public List<string> PlayerNames { get; set; }
     public GameStateHandler GameStateHandler { get; set; }
     public GameConfig GameConfig { get; set; }
+    public bool IsHost { get; set; }
+
+    public Action<Unit, bool> OnUnitSpawned;
 
     public void StartGame()
     {
@@ -26,5 +29,6 @@ public class GameController : ScriptableObject
         MatchCode = string.Empty;
         MatchId = string.Empty;
         PlayerNames = new List<string>();
+        IsHost = false;
     }
 }

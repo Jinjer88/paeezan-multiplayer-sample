@@ -14,6 +14,7 @@ var InitModule = function (ctx, logger, nk, initializer) {
         matchSignal: matchSignal
     });
 };
+var tickRate = 5;
 function matchInit(ctx, logger, nk, params) {
     logger.debug('Lobby match created');
     var config = loadConfig(logger, nk);
@@ -22,7 +23,7 @@ function matchInit(ctx, logger, nk, params) {
     }
     var state = { presences: {}, ready: {}, gameStarted: false, gameConfig: config, units: [], towers: {}, host: params.host, manas: {}, meleeCooldowns: {}, rangedCooldowns: {} };
     logger.debug('Match state created, host: %s', state.host);
-    return { state: state, tickRate: 5, label: "1v1" };
+    return { state: state, tickRate: tickRate, label: "1v1" };
 }
 ;
 function matchJoin(ctx, logger, nk, dispatcher, tick, state, presences) {
@@ -60,6 +61,14 @@ function matchLeave(ctx, logger, nk, dispatcher, tick, state, presences) {
     }
     return { state: state };
 }
+function matchSignal(ctx, logger, nk, dispatcher, tick, state, data) {
+    logger.debug('Lobby match signal received: ' + data);
+    return { state: state, data: "Lobby match signal received: " + data };
+}
+function matchTerminate(ctx, logger, nk, dispatcher, tick, state, graceSeconds) {
+    logger.debug('Lobby match terminated');
+    return { state: state };
+}
 function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
     for (var _i = 0, messages_1 = messages; _i < messages_1.length; _i++) {
         var m = messages_1[_i];
@@ -84,29 +93,12 @@ function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
             var m = messages_2[_a];
             if (m.opCode === 5) {
                 var data = JSON.parse(nk.binaryToString(m.data));
-                if (data.unitType) {
-                    var unit = {
-                        position: m.sender.userId === state.host ? -5 : 5,
-                        health: state.gameConfig.units[data.unitType].health,
-                        attackTimer: 0,
-                        type: data.unitType,
-                        owner: m.sender.userId,
-                    };
-                    state.units.push(unit);
-                    dispatcher.broadcastMessage(6, JSON.stringify({ type: "new_unit", unit: unit }));
-                    logger.info("New unit added: %s by %s", data.unitType, m.sender.username);
-                }
+                spawnUnit(data, state, m, dispatcher, logger);
             }
         }
+        updatePlayersMana(state);
+        updateUnitPositions(state, dispatcher);
     }
-    return { state: state };
-}
-function matchSignal(ctx, logger, nk, dispatcher, tick, state, data) {
-    logger.debug('Lobby match signal received: ' + data);
-    return { state: state, data: "Lobby match signal received: " + data };
-}
-function matchTerminate(ctx, logger, nk, dispatcher, tick, state, graceSeconds) {
-    logger.debug('Lobby match terminated');
     return { state: state };
 }
 function loadConfig(logger, nk) {
@@ -119,6 +111,38 @@ function loadConfig(logger, nk) {
         return null;
     }
 }
+function updatePlayersMana(state) {
+    for (var userId in state.manas) {
+        if (state.manas[userId] < 10) {
+            state.manas[userId] += state.gameConfig.manaRegenRate / tickRate;
+        }
+    }
+}
+function updateUnitPositions(state, dispatcher) {
+    var gameState = state;
+    var updates = [];
+    for (var i = 0; i < gameState.units.length; i++) {
+        var unit = gameState.units[i];
+        var speed = gameState.gameConfig.units[unit.type].speed;
+        var updated = false;
+        if (unit.owner === gameState.host && unit.position < 5) {
+            unit.position += speed / tickRate;
+            updated = true;
+        }
+        else if (unit.owner !== gameState.host && unit.position > -5) {
+            updated = true;
+            unit.position -= speed / tickRate;
+        }
+        if (updated)
+            updates.push({
+                id: unit.id,
+                position: unit.position
+            });
+    }
+    if (updates.length > 0) {
+        dispatcher.broadcastMessage(7, JSON.stringify({ type: "unit_positions", updates: updates }));
+    }
+}
 function allReady(state) {
     for (var userId in state.ready) {
         if (!state.ready[userId]) {
@@ -126,6 +150,27 @@ function allReady(state) {
         }
     }
     return true;
+}
+function spawnUnit(data, state, m, dispatcher, logger) {
+    if (data.unitType) {
+        var unitCost = state.gameConfig.units[data.unitType].cost;
+        if (state.manas[m.sender.userId] < unitCost) {
+            logger.info("Player %s tried to spawn %s but has insufficient mana", m.sender.username, data.unitType);
+            return;
+        }
+        var unit = {
+            id: state.units.length,
+            position: m.sender.userId === state.host ? -5 : 5,
+            health: state.gameConfig.units[data.unitType].health,
+            attackTimer: 0,
+            type: data.unitType,
+            owner: m.sender.userId,
+        };
+        state.manas[m.sender.userId] -= unitCost;
+        state.units.push(unit);
+        dispatcher.broadcastMessage(6, JSON.stringify({ type: "new_unit", unit: unit }));
+        logger.info("New unit added: %s by %s", data.unitType, m.sender.username);
+    }
 }
 var Collection = "rooms";
 var CodeSize = 4;

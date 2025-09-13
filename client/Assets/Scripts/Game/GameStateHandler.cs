@@ -1,7 +1,9 @@
+using DG.Tweening;
 using Nakama;
 using Nakama.TinyJson;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GameStateHandler : MonoBehaviour
@@ -15,6 +17,7 @@ public class GameStateHandler : MonoBehaviour
     [SerializeField] private Material redMat;
 
     private GameState currentGameState;
+    private Dictionary<int, Pirate> units = new Dictionary<int, Pirate>();
 
     private void Start()
     {
@@ -52,6 +55,7 @@ public class GameStateHandler : MonoBehaviour
 
     public void StartGame()
     {
+        units = new Dictionary<int, Pirate>();
         StartCoroutine(StartGameCoroutine());
         Debug.Log($"GameStateHandler - StartGame, sending ready signal to server...");
         serverController.Socket.SendMatchStateAsync(gameController.MatchId, (long)OpCode.ReadySignal, string.Empty);
@@ -78,12 +82,30 @@ public class GameStateHandler : MonoBehaviour
         {
             var unitData = JsonParser.FromJson<MatchSpawnUnitResponseModel>(stateJson).unit;
             bool isMine = unitData.owner == serverController.Session.UserId;
-            Pirate unit = unitData.type == "melee" ? meleeUnit : rangedUnit;
+            Pirate unitPrefab = unitData.type == "melee" ? meleeUnit : rangedUnit;
             float rotation = isMine ? 0 : 180f;
             var mat = isMine ? blueMat : redMat;
             float position = isMine ? -5f : 5f;
-            var pirateUnit = Instantiate(unit, new Vector3(0, 0, position), Quaternion.Euler(0, rotation, 0), transform);
-            pirateUnit.meshRenderer.material = mat;
+            var pirateUnit = Instantiate(unitPrefab, new Vector3(0, 0, position), Quaternion.Euler(0, rotation, 0), transform);
+            pirateUnit.InitUnit(isMine, unitData.health, mat);
+            units.Add(unitData.id, pirateUnit);
+            gameController.OnUnitSpawned?.Invoke(unitData, isMine);
+        }
+        else if (code == OpCode.UnitPositionUpdates)
+        {
+            var positionUpdate = JsonParser.FromJson<MatchUnitUpdateResponseModel>(stateJson).updates;
+            for (int i = 0; i < positionUpdate.Length; i++)
+            {
+                if (units.TryGetValue(positionUpdate[i].id, out Pirate pirate))
+                {
+                    int modifier = gameController.IsHost ? 1 : -1;
+                    float targetPos = positionUpdate[i].position * modifier;
+                    //pirate.transform.position = new Vector3(0, 0, targetPos);
+                    pirate.transform.DOKill();
+                    pirate.transform.DOMoveZ(targetPos, 0.2f).SetEase(Ease.Linear);
+                    pirate.SwitchState(pirate.movingState);
+                }
+            }
         }
     }
 

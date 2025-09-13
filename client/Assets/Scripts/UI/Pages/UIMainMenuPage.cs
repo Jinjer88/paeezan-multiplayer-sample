@@ -21,6 +21,7 @@ public class UIMainMenuPage : UIPage
 
     public override void OnPageOpen()
     {
+        gameController.IsHost = false;
         errorMessageText.text = string.Empty;
         playerNameText.text = serverController.Account.User.Username;
         refreshMatchList.onClick.AddListener(UpdateMatchList);
@@ -78,6 +79,7 @@ public class UIMainMenuPage : UIPage
 
         joinMatch.interactable = true;
         createMatch.interactable = true;
+        gameController.IsHost = true;
         uiController.OpenPage<UILobbyPage>();
     }
 

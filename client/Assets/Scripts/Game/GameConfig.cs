@@ -3,6 +3,7 @@ using System;
 [Serializable]
 public class GameConfig
 {
+    public float manaRegenRate;
     public TowersConfig towers;
     public UnitsConfig units;
 }
@@ -27,6 +28,7 @@ public class UnitConfig
     public int health;
     public int attack;
     public int cost;
-    public int speed;
-    public int range;
+    public float speed;
+    public float range;
+    public float cooldown;
 }

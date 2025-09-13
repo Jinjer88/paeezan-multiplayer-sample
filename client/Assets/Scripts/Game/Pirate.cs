@@ -1,20 +1,20 @@
-using System.Collections;
-using TMPro;
 using UnityEngine;
-using UnityEngine.AI;
+using UnityEngine.UI;
 
 public class Pirate : MonoBehaviour
 {
-    [HideInInspector] public Animator animator;
-    [HideInInspector] public SkinnedMeshRenderer meshRenderer;
-    [HideInInspector] public PirateState currentState;
-
     [Space]
     [Header("States:")]
     public PirateState attackingState;
     public PirateState movingState;
     public PirateState idleState;
     public PirateState dyingState;
+
+    private PirateState currentState;
+    private Animator animator;
+    private SkinnedMeshRenderer meshRenderer;
+    private Canvas healthBarCanvas;
+    private Slider healthSlider;
 
     private const string speedAnimParamName = "Speed";
     private const string danceAnimParamName = "Dance";
@@ -25,11 +25,15 @@ public class Pirate : MonoBehaviour
     private const string pistolAnimParamName = "Pistol";
 
     public int CurrentHealth { get; set; }
+    public int MaxHealth { get; set; }
+    public bool IsMine { get; set; }
 
     private void Awake()
     {
         animator = GetComponentInChildren<Animator>();
         meshRenderer = animator.GetComponentInChildren<SkinnedMeshRenderer>();
+        healthBarCanvas = GetComponentInChildren<Canvas>();
+        healthSlider = healthBarCanvas.GetComponentInChildren<Slider>();
     }
 
     private void Start()
@@ -43,6 +47,16 @@ public class Pirate : MonoBehaviour
             currentState.OnStay(this);
     }
 
+    public void InitUnit(bool isMine, int health, Material mat)
+    {
+        IsMine = isMine;
+        meshRenderer.material = mat;
+        MaxHealth = health;
+        UpdateHealth(health);
+        if (isMine == false)
+            healthBarCanvas.transform.localRotation = Quaternion.Euler(45f, 180f, 0);
+    }
+
     public void SwitchState(PirateState newState)
     {
         if (currentState != null)
@@ -52,11 +66,22 @@ public class Pirate : MonoBehaviour
         currentState.OnEnter(this);
     }
 
-    public void Dance()
+    public void UpdateHealth(int health)
+    {
+        CurrentHealth = health;
+        healthSlider.value = health / MaxHealth;
+    }
+
+    public void PlayRandomDanceAnimation()
     {
         int random = Random.Range(0, 4);
         animator.speed = Random.Range(0.9f, 1.25f);
         animator.SetFloat(danceRandomizerParamName, random);
         animator.SetBool(danceAnimParamName, true);
+    }
+
+    public void PlayRunAnimation()
+    {
+        animator.SetFloat(speedAnimParamName, 1f);
     }
 }

@@ -1,11 +1,12 @@
 {
+    "manaRegenRate": 1,
     "towers": {
         "health": 100,
         "attack": 5
     },
     "units": {
         "melee": {
-            "health": 20,
+            "health": 25,
             "attack": 3,
             "cost": 2,
             "speed": 1,

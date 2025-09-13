@@ -57,6 +57,18 @@ function matchLeave(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunt
     return { state };
 }
 
+function matchSignal(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, data: string): { state: nkruntime.MatchState, data?: string } | null {
+    logger.debug('Lobby match signal received: ' + data);
+
+    return { state, data: "Lobby match signal received: " + data };
+}
+
+function matchTerminate(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, graceSeconds: number): { state: nkruntime.MatchState } | null {
+    logger.debug('Lobby match terminated');
+
+    return { state };
+}
+
 function matchLoop(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, messages: nkruntime.MatchMessage[]): { state: nkruntime.MatchState } | null {
     for (const m of messages) {
         if (m.opCode === 2) {
@@ -81,35 +93,13 @@ function matchLoop(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
         for (const m of messages) {
             if (m.opCode === 5) {
                 const data = JSON.parse(nk.binaryToString(m.data));
-                if (data.unitType) {
-                    const unit: Unit = {
-                        position: m.sender.userId === state.host ? -5 : 5,
-                        health: state.gameConfig.units[data.unitType].health,
-                        attackTimer: 0,
-                        type: data.unitType,
-                        owner: m.sender.userId,
-                    };
-                    state.units.push(unit);
-                    dispatcher.broadcastMessage(6, JSON.stringify({ type: "new_unit", unit }));
-                    logger.info("New unit added: %s by %s", data.unitType, m.sender.username);
-                }
+                spawnUnit(data, state, m, dispatcher, logger);
             }
         }
 
+        updatePlayersMana(state);
         updateUnitPositions(state, dispatcher);
     }
-
-    return { state };
-}
-
-function matchSignal(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, data: string): { state: nkruntime.MatchState, data?: string } | null {
-    logger.debug('Lobby match signal received: ' + data);
-
-    return { state, data: "Lobby match signal received: " + data };
-}
-
-function matchTerminate(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, graceSeconds: number): { state: nkruntime.MatchState } | null {
-    logger.debug('Lobby match terminated');
 
     return { state };
 }
@@ -124,8 +114,42 @@ function loadConfig(logger: nkruntime.Logger, nk: nkruntime.Nakama): GameConfig 
     }
 }
 
-function updateUnitPositions(state: nkruntime.MatchState, dispatcher: nkruntime.MatchDispatcher) {
+function updatePlayersMana(state: nkruntime.MatchState) {
+    for (const userId in state.manas) {
+        if (state.manas[userId] < 10) {
+            state.manas[userId] += state.gameConfig.manaRegenRate / tickRate;
+        }
+    }
+}
 
+function updateUnitPositions(state: nkruntime.MatchState, dispatcher: nkruntime.MatchDispatcher) {
+    const gameState = state as unknown as GameState;
+    const updates: { id: number, position: number }[] = [];
+
+    for (let i = 0; i < gameState.units.length; i++) {
+        const unit = gameState.units[i];
+        const speed = gameState.gameConfig.units[unit.type].speed;
+
+        let updated = false;
+
+        if (unit.owner === gameState.host && unit.position < 5) {
+            unit.position += speed / tickRate;
+            updated = true;
+        } else if (unit.owner !== gameState.host && unit.position > -5) {
+            updated = true;
+            unit.position -= speed / tickRate;
+        }
+
+        if (updated)
+            updates.push({
+                id: unit.id,
+                position: unit.position
+            });
+    }
+
+    if (updates.length > 0) {
+        dispatcher.broadcastMessage(7, JSON.stringify({ type: "unit_positions", updates }));
+    }
 }
 
 function allReady(state: nkruntime.MatchState): boolean {
@@ -137,7 +161,32 @@ function allReady(state: nkruntime.MatchState): boolean {
     return true;
 }
 
+function spawnUnit(data: any, state: nkruntime.MatchState, m: nkruntime.MatchMessage, dispatcher: nkruntime.MatchDispatcher, logger: nkruntime.Logger) {
+    if (data.unitType) {
+        const unitCost = state.gameConfig.units[data.unitType].cost;
+        if (state.manas[m.sender.userId] < unitCost) {
+            logger.info("Player %s tried to spawn %s but has insufficient mana", m.sender.username, data.unitType);
+            return;
+        }
+
+        const unit: Unit = {
+            id: state.units.length,
+            position: m.sender.userId === state.host ? -5 : 5,
+            health: state.gameConfig.units[data.unitType].health,
+            attackTimer: 0,
+            type: data.unitType,
+            owner: m.sender.userId,
+        };
+
+        state.manas[m.sender.userId] -= unitCost;
+        state.units.push(unit);
+        dispatcher.broadcastMessage(6, JSON.stringify({ type: "new_unit", unit }));
+        logger.info("New unit added: %s by %s", data.unitType, m.sender.username);
+    }
+}
+
 interface GameConfig {
+    manaRegenRate: number;
     towers: {
         health: number;
         attack: number;
@@ -149,6 +198,7 @@ interface GameConfig {
 }
 
 interface Unit {
+    id: number;
     position: number;
     health: number;
     attackTimer: number;

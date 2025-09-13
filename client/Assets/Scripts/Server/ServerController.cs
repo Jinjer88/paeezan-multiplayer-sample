@@ -205,6 +205,20 @@ public class MatchSpawnUnitResponseModel
     public Unit unit;
 }
 
+[SerializeField]
+public class MatchUnitUpdateResponseModel
+{
+    public string type;
+    public UnitPositionUpdateModel[] updates;
+}
+
+[SerializeField]
+public class UnitPositionUpdateModel
+{
+    public int id;
+    public float position;
+}
+
 public enum OpCode
 {
     MatchConfig = 0,
@@ -214,12 +228,13 @@ public enum OpCode
     LobbyUpdate = 4,
     SpawnUnitRequest = 5,
     SpawnUnit = 6,
-    UnitPositions = 7
+    UnitPositionUpdates = 7
 }
 
 [Serializable]
 public class Unit
 {
+    public int id;
     public float position;
     public int health;
     public float attackTimer;

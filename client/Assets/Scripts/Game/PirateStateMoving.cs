@@ -5,6 +5,7 @@ public class PirateStateMoving : PirateState
 {
     public override void OnEnter(Pirate pirate)
     {
+        pirate.PlayRunAnimation();
     }
 
     public override void OnExit(Pirate pirate)

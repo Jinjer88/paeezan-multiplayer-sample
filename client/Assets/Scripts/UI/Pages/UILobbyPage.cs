@@ -38,7 +38,10 @@ public class UILobbyPage : UIPage
     public override void OnPageOpen()
     {
         goBackButton.onClick.AddListener(GoBack);
-        matchCodeText.text = $"Match Code: {gameController.MatchCode}";
+        if (gameController.IsHost)
+            matchCodeText.text = $"Match Code: {gameController.MatchCode}";
+        else
+            matchCodeText.text = $"Battle starting soon...";
     }
 
     public override void OnPageClose()
