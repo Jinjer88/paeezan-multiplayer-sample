@@ -105,7 +105,7 @@ function matchLoop(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
         }
 
         updatePlayersMana(state);
-        updateUnits(state, dispatcher);
+        updateUnits(logger, nk, state, dispatcher);
     }
 
     return { state };
@@ -114,6 +114,7 @@ function matchLoop(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
 function loadConfig(logger: nkruntime.Logger, nk: nkruntime.Nakama): GameConfig | null {
     try {
         const raw = nk.fileRead("./game-config.json");
+        logger.debug("Game config loaded");
         return JSON.parse(raw) as GameConfig;
     } catch (e) {
         logger.error("Failed to load config: %s", e);
@@ -129,7 +130,7 @@ function updatePlayersMana(state: nkruntime.MatchState) {
     }
 }
 
-function updateUnits(state: nkruntime.MatchState, dispatcher: nkruntime.MatchDispatcher) {
+function updateUnits(logger: nkruntime.Logger, nk: nkruntime.Nakama, state: nkruntime.MatchState, dispatcher: nkruntime.MatchDispatcher) {
     const gameState = state as unknown as GameState;
     const updates: { id: number, position: number, health?: number }[] = [];
 
@@ -195,6 +196,8 @@ function updateUnits(state: nkruntime.MatchState, dispatcher: nkruntime.MatchDis
                     }));
 
                     if (gameState.towers[towerOwner] <= 0) {
+                        logger.info("Player %s wins!", unit.owner);
+                        writeLeaderbaordRecord(logger, nk, unit.owner, gameState.presences[unit.owner].username);
                         gameState.winner = unit.owner;
                         dispatcher.broadcastMessage(10, JSON.stringify({ type: "game_over", winner: gameState.winner }));
                         return;
@@ -270,6 +273,14 @@ function spawnUnit(data: any, state: nkruntime.MatchState, m: nkruntime.MatchMes
         state.units.push(unit);
         dispatcher.broadcastMessage(6, JSON.stringify({ type: "new_unit", unit }));
         logger.info("New unit added: %s by %s", data.unitType, m.sender.username);
+    }
+}
+
+function writeLeaderbaordRecord(logger: nkruntime.Logger, nk: nkruntime.Nakama, userId: string, username: string) {
+    try {
+        nk.leaderboardRecordWrite(winsLeaderboardId, userId, username, 1);
+    } catch (error) {
+        logger.error("Error writing leaderboard record: " + error);
     }
 }
 

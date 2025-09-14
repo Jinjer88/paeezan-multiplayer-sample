@@ -1,9 +1,11 @@
 "use strict";
 var MatchModuleName = "match_module";
+var winsLeaderboardId = "lb_wins";
 var InitModule = function (ctx, logger, nk, initializer) {
     logger.info('starting module initialization. InitModule');
     initializer.registerRpc('create_match', rpcCreateMatch);
     initializer.registerRpc('join_match', rpcJoinMatch);
+    createLeaderboard(logger, nk);
     initializer.registerMatch(MatchModuleName, {
         matchInit: matchInit,
         matchJoinAttempt: matchJoinAttempt,
@@ -14,6 +16,18 @@ var InitModule = function (ctx, logger, nk, initializer) {
         matchSignal: matchSignal
     });
 };
+function createLeaderboard(logger, nk) {
+    var authoritative = true;
+    var sort = "descending";
+    var operator = "increment";
+    try {
+        nk.leaderboardCreate(winsLeaderboardId, authoritative, sort, operator);
+        logger.info("Leaderboard created: " + winsLeaderboardId);
+    }
+    catch (error) {
+        logger.error("Error creating leaderboard: " + error);
+    }
+}
 var tickRate = 5;
 function matchInit(ctx, logger, nk, params) {
     logger.debug('Lobby match created');
@@ -103,7 +117,7 @@ function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
             }
         }
         updatePlayersMana(state);
-        updateUnits(state, dispatcher);
+        updateUnits(logger, nk, state, dispatcher);
     }
     return { state: state };
 }
@@ -124,7 +138,7 @@ function updatePlayersMana(state) {
         }
     }
 }
-function updateUnits(state, dispatcher) {
+function updateUnits(logger, nk, state, dispatcher) {
     var gameState = state;
     var updates = [];
     for (var i = 0; i < gameState.units.length; i++) {
@@ -179,6 +193,8 @@ function updateUnits(state, dispatcher) {
                         towerHealth: gameState.towers[towerOwner]
                     }));
                     if (gameState.towers[towerOwner] <= 0) {
+                        logger.info("Player %s wins!", unit.owner);
+                        writeLeaderbaordRecord(logger, nk, unit.owner, gameState.presences[unit.owner].username);
                         gameState.winner = unit.owner;
                         dispatcher.broadcastMessage(10, JSON.stringify({ type: "game_over", winner: gameState.winner }));
                         return;
@@ -246,6 +262,14 @@ function spawnUnit(data, state, m, dispatcher, logger) {
         state.units.push(unit);
         dispatcher.broadcastMessage(6, JSON.stringify({ type: "new_unit", unit: unit }));
         logger.info("New unit added: %s by %s", data.unitType, m.sender.username);
+    }
+}
+function writeLeaderbaordRecord(logger, nk, userId, username) {
+    try {
+        nk.leaderboardRecordWrite(winsLeaderboardId, userId, username, 1);
+    }
+    catch (error) {
+        logger.error("Error writing leaderboard record: " + error);
     }
 }
 var Collection = "rooms";

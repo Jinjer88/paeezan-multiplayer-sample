@@ -12,6 +12,7 @@ public class ServerController : ScriptableObject
     public ISession Session { get; private set; }
     public IApiAccount Account { get; private set; }
     public ISocket Socket { get; private set; }
+    public IApiLeaderboardRecordList LeaderboardRecords { get; set; }
 
     public event Action<IMatchPresenceEvent> OnPlayerJoined;
     public event Action<IMatchState> OnMatchState;
@@ -37,6 +38,19 @@ public class ServerController : ScriptableObject
         }
     }
 
+    public async Task LogOut()
+    {
+        try
+        {
+            await Client.SessionLogoutAsync(Session);
+            Debug.Log($"ServerController - LogOut, logged out of session successfuly");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"ServerController - LogOut, failed to log out. {ex}");
+        }
+    }
+
     public async Task ConnectSocket()
     {
         bool useMainThread = true;
@@ -55,12 +69,49 @@ public class ServerController : ScriptableObject
         }
     }
 
+    public async Task<IApiLeaderboardRecordList> GetLeaderboardRecords()
+    {
+        try
+        {
+            string id = "lb_wins";
+            var result = await Client.ListLeaderboardRecordsAsync(Session, id, limit: 100);
+            LeaderboardRecords = result;
+            return result;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"ServerController - GetLeaderboard, failed to get leaderboard with id lb_wins, error: {ex.Message}");
+            return null;
+        }
+    }
+
+    public async Task<IApiLeaderboardRecord> GetMyLeaderboardRecord()
+    {
+        try
+        {
+            string id = "lb_wins";
+            var result = await Client.ListLeaderboardRecordsAroundOwnerAsync(Session, id, Session.UserId);
+            foreach (var item in result.Records)
+            {
+                if (item.Username == Session.Username)
+                    return item;
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"ServerController - GetLeaderboard, failed to get leaderboard with id lb_wins, error: {ex.Message}");
+            return null;
+        }
+    }
+
     public async Task<IEnumerable<IApiMatch>> GetMatchesList()
     {
         try
         {
-            int minPlayers = 0;
-            int maxPlayers = 2;
+            int minPlayers = 1;
+            int maxPlayers = 3;
             int limit = 10;
             bool authoritative = true;
             var result = await Client.ListMatchesAsync(Session, minPlayers, maxPlayers, limit, authoritative, null, null);
@@ -249,7 +300,7 @@ public class MatchUnitAttackResponseModel
     public int targetHealth;
 }
 
-[SerializeField] 
+[SerializeField]
 public class MatchUnitDeadResponseModel
 {
     public string type;

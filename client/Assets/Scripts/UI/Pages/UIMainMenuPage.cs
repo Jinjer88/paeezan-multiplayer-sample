@@ -1,23 +1,24 @@
 using Nakama;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Rendering;
 using UnityEngine.UI;
 
 public class UIMainMenuPage : UIPage
 {
     [SerializeField] private GameController gameController;
     [SerializeField] private ServerController serverController;
+    [SerializeField] private Button leaderboardButton;
     [SerializeField] private Button createMatch;
     [SerializeField] private Button joinMatch;
     [SerializeField] private TMP_InputField matchCodeInputField;
     [SerializeField] private TextMeshProUGUI errorMessageText;
     [SerializeField] private TextMeshProUGUI playerNameText;
+    [SerializeField] private TextMeshProUGUI playerWinsText;
     [SerializeField] private Button refreshMatchList;
     [SerializeField] private UIMatchItem matchItemPrefab;
     [SerializeField] private Transform matchListParent;
+    [SerializeField] private Button newUserButton;
 
     public override void OnPageOpen()
     {
@@ -31,7 +32,10 @@ public class UIMainMenuPage : UIPage
         refreshMatchList.onClick.AddListener(UpdateMatchList);
         createMatch.onClick.AddListener(CreateMatch);
         joinMatch.onClick.AddListener(CheckMatchCode);
+        leaderboardButton.onClick.AddListener(ShowLeaderboard);
+        newUserButton.onClick.AddListener(LogOut);
         UpdateMatchList();
+        UpdateLeaderboard();
     }
 
     public override void OnPageClose()
@@ -39,6 +43,34 @@ public class UIMainMenuPage : UIPage
         refreshMatchList.onClick.RemoveListener(UpdateMatchList);
         createMatch.onClick.RemoveListener(CreateMatch);
         joinMatch.onClick.RemoveListener(CheckMatchCode);
+        leaderboardButton.onClick.RemoveListener(ShowLeaderboard);
+        newUserButton.onClick.AddListener(LogOut);
+    }
+
+    private void LogOut()
+    {
+        _ = serverController.LogOut();
+        uiController.OpenPage<UIRegisterPage>();
+    }
+
+    private void ShowLeaderboard()
+    {
+        uiController.OpenPage<UILeaderboardPage>();
+    }
+
+    private async void UpdateLeaderboard()
+    {
+        var myRank = await serverController.GetMyLeaderboardRecord();
+        if (myRank != null)
+        {
+            playerWinsText.text = $"Total Wins: {myRank.Score}";
+        }
+        else
+        {
+            playerWinsText.text = $"Total Wins: 0";
+        }
+
+        _ = serverController.GetLeaderboardRecords();
     }
 
     private async void UpdateMatchList()
@@ -53,10 +85,9 @@ public class UIMainMenuPage : UIPage
         foreach (var match in matches)
         {
             var matchItem = Instantiate(matchItemPrefab, matchListParent);
-            matchItem.SetData($"{match.MatchId} - ({match.Size}/2)", () =>
+            matchItem.SetData($"{match.MatchId} - ({match.Size}/2) Players in match", () =>
             {
                 JoinMatch(match);
-                UpdateMatchList();
             });
         }
     }
@@ -107,7 +138,7 @@ public class UIMainMenuPage : UIPage
             return;
         }
 
-        gameController.MatchId = result.Id;
+        gameController.MatchId = match.MatchId;
         uiController.OpenPage<UILobbyPage>();
     }
 

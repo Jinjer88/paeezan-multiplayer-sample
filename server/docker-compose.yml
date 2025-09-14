@@ -37,7 +37,7 @@ services:
     volumes:
       - ./nakama-config.yml:/nakama/config/nakama-config.yml
       - ./build:/nakama/data/modules
-      - ./game-config.json:/nakama/data/modules/game-config.json
+      - ../config/game-config.json:/nakama/data/modules/game-config.json
     expose:
       - "7349"
       - "7350"

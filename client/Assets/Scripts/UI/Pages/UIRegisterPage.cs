@@ -13,7 +13,8 @@ public class UIRegisterPage : UIPage
     {
         registerButton.onClick.AddListener(OnRegisterButtonClicked);
         registerButton.interactable = true;
-        errorText.text = "";
+        errorText.text = string.Empty;
+        nicknameInput.text = string.Empty;
     }
 
     public override void OnPageClose()
@@ -25,9 +26,9 @@ public class UIRegisterPage : UIPage
     {
         errorText.text = "";
 
-        if (nicknameInput.text.Length < 2)
+        if (nicknameInput.text.Length < 3)
         {
-            errorText.text = "Nickname is too short, must be at least 2 characters long";
+            errorText.text = "Nickname is too short, must be at least 3 characters long";
             return;
         }
 
@@ -38,20 +39,8 @@ public class UIRegisterPage : UIPage
         }
 
         string nickname = nicknameInput.text;
-        Authenticate(nickname);
-    }
-
-    private async void Authenticate(string nickname)
-    {
         registerButton.interactable = false;
-        bool success = await serverController.Authenticate(nickname);
-        if (success)
-        {
-            uiController.OpenPage<UIMainMenuPage>();
-        }
-        else
-        {
-            registerButton.interactable = true;
-        }
+        PlayerPrefs.SetString("username", nickname);
+        uiController.OpenPage<UIConnectionPage>();
     }
 }

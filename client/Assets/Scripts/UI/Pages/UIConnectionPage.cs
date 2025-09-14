@@ -38,7 +38,7 @@ public class UIConnectionPage : UIPage
         }
         else
         {
-
+            uiController.OpenPage<UIRegisterPage>();
         }
     }
 

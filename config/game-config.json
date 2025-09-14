@@ -1,7 +1,7 @@
 {
     "manaRegenRate": 0.5,
     "towers": {
-        "health": 200,
+        "health": 300,
         "damage": 5
     },
     "units": {
@@ -10,16 +10,16 @@
             "attackDamage": 3,
             "attackSpeed": 1.5,
             "attackRange": 0.3,
-            "cost": 2,
+            "cost": 3,
             "moveSpeed": 1,
             "cooldown": 3
         },
         "ranged": {
             "health": 10,
-            "attackDamage": 2,
+            "attackDamage": 5,
             "attackSpeed": 1,
             "attackRange": 2,
-            "cost": 3,
+            "cost": 4,
             "moveSpeed": 2,
             "cooldown": 5
         }

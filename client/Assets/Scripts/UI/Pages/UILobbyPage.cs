@@ -50,6 +50,9 @@ public class UILobbyPage : UIPage
         matchCodeText.text = string.Empty;
         serverController.OnPlayerJoined -= OnPlayerJoined;
         serverController.OnMatchState -= OnMatchState;
+
+        for (int i = 0; i < playerNameTexts.Length; i++)
+            playerNameTexts[i].text = string.Empty;
     }
 
     private async void GoBack()
