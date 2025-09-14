@@ -23,6 +23,7 @@ public class UIMainMenuPage : UIPage
     {
         gameController.IsHost = false;
         errorMessageText.text = string.Empty;
+        matchCodeInputField.text = string.Empty;
         playerNameText.text = serverController.Account.User.Username;
         refreshMatchList.onClick.AddListener(UpdateMatchList);
         createMatch.onClick.AddListener(CreateMatch);

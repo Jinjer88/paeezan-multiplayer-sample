@@ -73,6 +73,9 @@ function matchTerminate(ctx, logger, nk, dispatcher, tick, state, graceSeconds) 
     return { state: state };
 }
 function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
+    if (state.winner) {
+        return { state: state };
+    }
     for (var _i = 0, messages_1 = messages; _i < messages_1.length; _i++) {
         var m = messages_1[_i];
         if (m.opCode === 2) {
@@ -144,6 +147,11 @@ function updateUnits(state, dispatcher) {
                     towerOwner: towerOwner,
                     towerHealth: gameState.towers[towerOwner]
                 }));
+                if (gameState.towers[towerOwner] <= 0) {
+                    gameState.winner = unit.owner;
+                    dispatcher.broadcastMessage(10, JSON.stringify({ type: "game_over", winner: gameState.winner }));
+                    return;
+                }
             }
         }
         else {

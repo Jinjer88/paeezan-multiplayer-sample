@@ -7,31 +7,26 @@ public class GameController : ScriptableObject
 {
     public string MatchId { get; set; }
     public string MatchCode { get; set; }
-    public List<string> PlayerNames { get; set; }
-    public List<string> PlayerIDs { get; set; }
+    public List<IdUsernamePair> IdUsernamePairs { get; set; }
     public GameStateHandler GameStateHandler { get; set; }
     public GameConfig GameConfig { get; set; }
     public bool IsHost { get; set; }
 
     public Action<int, bool> OnTowerAttack;
     public Action<Unit, bool> OnUnitSpawned;
-
-    public void StartGame()
-    {
-        GameStateHandler.StartGame();
-    }
-
-    public void SpawnUnit(string unitType)
-    {
-        GameStateHandler.RequestUnitSpawn(unitType);
-    }
+    public Action<string> OnGameOver;
 
     private void OnEnable()
     {
         MatchCode = string.Empty;
         MatchId = string.Empty;
-        PlayerNames = new List<string>();
-        PlayerIDs = new List<string>();
+        IdUsernamePairs = new List<IdUsernamePair>();
         IsHost = false;
     }
+}
+
+public struct IdUsernamePair
+{
+    public string id;
+    public string username;
 }

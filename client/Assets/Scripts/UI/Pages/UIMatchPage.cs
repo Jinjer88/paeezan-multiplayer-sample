@@ -102,7 +102,7 @@ public class UIMatchPage : UIPage
         if (manaProgress.fillAmount * 10f < unitCost)
             return;
 
-        gameController.SpawnUnit("melee");
+        gameController.GameStateHandler.RequestUnitSpawn("melee");
         float cooldown = gameController.GameConfig.units.melee.cooldown;
         meleeCard.StartCooldown(cooldown);
     }
@@ -113,7 +113,7 @@ public class UIMatchPage : UIPage
         if (manaProgress.fillAmount * 10f < unitCost)
             return;
 
-        gameController.SpawnUnit("ranged");
+        gameController.GameStateHandler.RequestUnitSpawn("ranged");
         float cooldown = gameController.GameConfig.units.ranged.cooldown;
         rangedCard.StartCooldown(cooldown);
     }

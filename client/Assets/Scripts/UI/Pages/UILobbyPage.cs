@@ -83,12 +83,10 @@ public class UILobbyPage : UIPage
                 break;
             case OpCode.LobbyUpdate:
                 var lobbyUpdate = JsonParser.FromJson<MatchLobbyUpdateMessageModel>(stateJson);
-                gameController.PlayerNames.Clear();
-                gameController.PlayerIDs.Clear();
+                gameController.IdUsernamePairs.Clear();
                 for (int i = 0; i < lobbyUpdate.playerNames.Length; i++)
                 {
-                    gameController.PlayerNames.Add(lobbyUpdate.playerNames[i]);
-                    gameController.PlayerIDs.Add(lobbyUpdate.playerIDs[i]);
+                    gameController.IdUsernamePairs.Add(new IdUsernamePair() { id = lobbyUpdate.playerIDs[i], username = lobbyUpdate.playerNames[i] });
                     if (playerNameTexts.Length > i)
                         playerNameTexts[i].text = lobbyUpdate.playerNames[i];
                 }
@@ -113,6 +111,6 @@ public class UILobbyPage : UIPage
     {
         matchCodeText.text = $"Battle starting soon...";
         goBackButton.interactable = false;
-        gameController.StartGame();
+        gameController.GameStateHandler.StartGame();
     }
 }

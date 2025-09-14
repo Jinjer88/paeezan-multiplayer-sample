@@ -19,8 +19,8 @@ public class Pirate : MonoBehaviour
 
     private const string danceAnimParamName = "Dance";
     private const string danceRandomizerParamName = "DanceRandomizer";
-    private const string dieAnimParamName = "Dead";
 
+    public Unit UnitData { get; set; }
     public int CurrentHealth { get; set; }
     public int MaxHealth { get; set; }
     public bool IsMine { get; set; }

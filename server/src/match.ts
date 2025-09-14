@@ -155,6 +155,12 @@ function updateUnits(state: nkruntime.MatchState, dispatcher: nkruntime.MatchDis
                     towerOwner: towerOwner,
                     towerHealth: gameState.towers[towerOwner]
                 }));
+
+                if (gameState.towers[towerOwner] <= 0) {
+                    gameState.winner = unit.owner;
+                    dispatcher.broadcastMessage(10, JSON.stringify({ type: "game_over", winner: gameState.winner }));
+                    return;
+                }
             }
         } else {
             if (unit.owner === gameState.host && unit.position < 5 - range) {

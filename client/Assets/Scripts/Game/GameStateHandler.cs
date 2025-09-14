@@ -1,6 +1,7 @@
 using DG.Tweening;
 using Nakama;
 using Nakama.TinyJson;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -59,17 +60,38 @@ public class GameStateHandler : MonoBehaviour
     {
         units = new Dictionary<int, Pirate>();
         towers = new Dictionary<string, int>();
-        for (int i = 0; i < gameController.PlayerIDs.Count; i++)
+        for (int i = 0; i < gameController.IdUsernamePairs.Count; i++)
         {
-            towers.Add(gameController.PlayerIDs[i], gameController.GameConfig.towers.health);
+            towers.Add(gameController.IdUsernamePairs[i].id, gameController.GameConfig.towers.health);
         }
         StartCoroutine(StartGameCoroutine());
         Debug.Log($"GameStateHandler - StartGame, sending ready signal to server...");
         serverController.Socket.SendMatchStateAsync(gameController.MatchId, (long)OpCode.ReadySignal, string.Empty);
     }
 
-    public void EndGame()
+    public void EndGame(string winnerID)
     {
+        gameController.OnGameOver?.Invoke(winnerID);
+        foreach (var unit in units)
+        {
+            var pirate = unit.Value;
+            if (pirate.UnitData.owner == winnerID)
+            {
+                pirate.SwitchState(pirate.idleState);
+                pirate.PlayRandomDanceAnimation();
+            }
+            else
+            {
+                pirate.SwitchState(pirate.dyingState);
+            }
+        }
+        uiController.OpenPage<UIGameOverPage>();
+    }
+
+    public void ClearBattleScene()
+    {
+        foreach (Transform child in transform)
+            Destroy(child.gameObject);
     }
 
     public void RequestUnitSpawn(string unitType)
@@ -94,6 +116,7 @@ public class GameStateHandler : MonoBehaviour
             var mat = isMine ? blueMat : redMat;
             float position = isMine ? -5f : 5f;
             var pirateUnit = Instantiate(unitPrefab, new Vector3(0, 0, position), Quaternion.Euler(0, rotation, 0), transform);
+            pirateUnit.UnitData = unitData;
             pirateUnit.InitUnit(isMine, unitData.health, mat, unitData.type);
             units.Add(unitData.id, pirateUnit);
             gameController.OnUnitSpawned?.Invoke(unitData, isMine);
@@ -127,6 +150,11 @@ public class GameStateHandler : MonoBehaviour
                     gameController.OnTowerAttack?.Invoke(attackUpdate.towerHealth, isMine);
                 }
             }
+        }
+        else if (code == OpCode.GameOver)
+        {
+            var gameOver = JsonParser.FromJson<MatchGameOverResponseModel>(stateJson);
+            EndGame(gameOver.winner);
         }
     }
 
