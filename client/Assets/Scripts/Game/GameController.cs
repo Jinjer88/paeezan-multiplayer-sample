@@ -8,10 +8,12 @@ public class GameController : ScriptableObject
     public string MatchId { get; set; }
     public string MatchCode { get; set; }
     public List<string> PlayerNames { get; set; }
+    public List<string> PlayerIDs { get; set; }
     public GameStateHandler GameStateHandler { get; set; }
     public GameConfig GameConfig { get; set; }
     public bool IsHost { get; set; }
 
+    public Action<int, bool> OnTowerAttack;
     public Action<Unit, bool> OnUnitSpawned;
 
     public void StartGame()
@@ -29,6 +31,7 @@ public class GameController : ScriptableObject
         MatchCode = string.Empty;
         MatchId = string.Empty;
         PlayerNames = new List<string>();
+        PlayerIDs = new List<string>();
         IsHost = false;
     }
 }

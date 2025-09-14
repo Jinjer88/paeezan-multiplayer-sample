@@ -84,18 +84,20 @@ public class UILobbyPage : UIPage
             case OpCode.LobbyUpdate:
                 var lobbyUpdate = JsonParser.FromJson<MatchLobbyUpdateMessageModel>(stateJson);
                 gameController.PlayerNames.Clear();
-                for (int i = 0; i < lobbyUpdate.players.Length; i++)
+                gameController.PlayerIDs.Clear();
+                for (int i = 0; i < lobbyUpdate.playerNames.Length; i++)
                 {
-                    gameController.PlayerNames.Add(lobbyUpdate.players[i]);
+                    gameController.PlayerNames.Add(lobbyUpdate.playerNames[i]);
+                    gameController.PlayerIDs.Add(lobbyUpdate.playerIDs[i]);
                     if (playerNameTexts.Length > i)
-                        playerNameTexts[i].text = lobbyUpdate.players[i];
+                        playerNameTexts[i].text = lobbyUpdate.playerNames[i];
                 }
-                if (lobbyUpdate.players.Length == 1)
+                if (lobbyUpdate.playerNames.Length == 1)
                 {
                     vsTransform.gameObject.SetActive(false);
                     waitingTransform.gameObject.SetActive(true);
                 }
-                else if (lobbyUpdate.players.Length == 2)
+                else if (lobbyUpdate.playerNames.Length == 2)
                 {
                     vsTransform.gameObject.SetActive(true);
                     waitingTransform.gameObject.SetActive(false);

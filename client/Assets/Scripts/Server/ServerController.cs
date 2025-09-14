@@ -182,7 +182,8 @@ public class MatchStateModel
 public class MatchLobbyUpdateMessageModel
 {
     public string type;
-    public string[] players;
+    public string[] playerNames;
+    public string[] playerIDs;
 }
 
 [Serializable]
@@ -219,6 +220,17 @@ public class UnitPositionUpdateModel
     public float position;
 }
 
+[SerializeField]
+public class MatchTowerAttackResponseModel
+{
+    public string type;
+    public int unitId;
+    public string attacker;
+    public int damage;
+    public string towerOwner;
+    public int towerHealth;
+}
+
 public enum OpCode
 {
     MatchConfig = 0,
@@ -228,7 +240,9 @@ public enum OpCode
     LobbyUpdate = 4,
     SpawnUnitRequest = 5,
     SpawnUnit = 6,
-    UnitPositionUpdates = 7
+    UnitPositionUpdates = 7,
+    TowerAttackUpdate = 8,
+    UnitAttackUpdate = 9
 }
 
 [Serializable]

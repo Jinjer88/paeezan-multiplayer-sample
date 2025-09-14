@@ -1,7 +1,6 @@
 using DG.Tweening;
 using Nakama;
 using Nakama.TinyJson;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -18,6 +17,9 @@ public class GameStateHandler : MonoBehaviour
 
     private GameState currentGameState;
     private Dictionary<int, Pirate> units = new Dictionary<int, Pirate>();
+    private Dictionary<string, int> towers = new Dictionary<string, int>();
+
+    public Dictionary<string, int> Towers => towers;
 
     private void Start()
     {
@@ -56,6 +58,11 @@ public class GameStateHandler : MonoBehaviour
     public void StartGame()
     {
         units = new Dictionary<int, Pirate>();
+        towers = new Dictionary<string, int>();
+        for (int i = 0; i < gameController.PlayerIDs.Count; i++)
+        {
+            towers.Add(gameController.PlayerIDs[i], gameController.GameConfig.towers.health);
+        }
         StartCoroutine(StartGameCoroutine());
         Debug.Log($"GameStateHandler - StartGame, sending ready signal to server...");
         serverController.Socket.SendMatchStateAsync(gameController.MatchId, (long)OpCode.ReadySignal, string.Empty);
@@ -87,7 +94,7 @@ public class GameStateHandler : MonoBehaviour
             var mat = isMine ? blueMat : redMat;
             float position = isMine ? -5f : 5f;
             var pirateUnit = Instantiate(unitPrefab, new Vector3(0, 0, position), Quaternion.Euler(0, rotation, 0), transform);
-            pirateUnit.InitUnit(isMine, unitData.health, mat);
+            pirateUnit.InitUnit(isMine, unitData.health, mat, unitData.type);
             units.Add(unitData.id, pirateUnit);
             gameController.OnUnitSpawned?.Invoke(unitData, isMine);
         }
@@ -104,6 +111,20 @@ public class GameStateHandler : MonoBehaviour
                     pirate.transform.DOKill();
                     pirate.transform.DOMoveZ(targetPos, 0.2f).SetEase(Ease.Linear);
                     pirate.SwitchState(pirate.movingState);
+                }
+            }
+        }
+        else if (code == OpCode.TowerAttackUpdate)
+        {
+            var attackUpdate = JsonParser.FromJson<MatchTowerAttackResponseModel>(stateJson);
+            if (units.TryGetValue(attackUpdate.unitId, out Pirate pirate))
+            {
+                pirate.SwitchState(pirate.attackingState);
+                if (towers.TryGetValue(attackUpdate.towerOwner, out _))
+                {
+                    towers[attackUpdate.towerOwner] = attackUpdate.towerHealth;
+                    bool isMine = attackUpdate.towerOwner == serverController.Session.UserId;
+                    gameController.OnTowerAttack?.Invoke(attackUpdate.towerHealth, isMine);
                 }
             }
         }

@@ -34,12 +34,15 @@ function matchJoin(ctx, logger, nk, dispatcher, tick, state, presences) {
         logger.debug('%q joined Lobby match, config sent', presence.userId);
     });
     var playerNames = [];
+    var playerIDs = [];
     for (var userId in state.presences) {
         playerNames.push(state.presences[userId].username);
+        playerIDs.push(userId);
     }
     dispatcher.broadcastMessage(4, JSON.stringify({
         type: "lobby_update",
-        players: playerNames
+        playerNames: playerNames,
+        playerIDs: playerIDs
     }));
     if (Object.keys(state.presences).length === 2) {
         dispatcher.broadcastMessage(1, JSON.stringify({ type: "match_ready" }));
@@ -97,7 +100,7 @@ function matchLoop(ctx, logger, nk, dispatcher, tick, state, messages) {
             }
         }
         updatePlayersMana(state);
-        updateUnitPositions(state, dispatcher);
+        updateUnits(state, dispatcher);
     }
     return { state: state };
 }
@@ -118,20 +121,43 @@ function updatePlayersMana(state) {
         }
     }
 }
-function updateUnitPositions(state, dispatcher) {
+function updateUnits(state, dispatcher) {
     var gameState = state;
     var updates = [];
     for (var i = 0; i < gameState.units.length; i++) {
         var unit = gameState.units[i];
-        var speed = gameState.gameConfig.units[unit.type].speed;
+        var speed = gameState.gameConfig.units[unit.type].moveSpeed;
+        var range = gameState.gameConfig.units[unit.type].attackRange;
+        var damage = gameState.gameConfig.units[unit.type].attackDamage;
         var updated = false;
-        if (unit.owner === gameState.host && unit.position < 5) {
-            unit.position += speed / tickRate;
-            updated = true;
+        var enemyTowerPos = unit.owner === gameState.host ? 5 : -5;
+        var towerOwner = unit.owner === gameState.host ? getOpponentId(unit.owner, gameState) : gameState.host;
+        if (Math.abs(unit.position - enemyTowerPos) <= range) {
+            if (unit.attackTimer <= 0) {
+                gameState.towers[towerOwner] -= damage;
+                unit.attackTimer = gameState.gameConfig.units[unit.type].attackSpeed;
+                dispatcher.broadcastMessage(8, JSON.stringify({
+                    type: "tower_attack",
+                    unitId: unit.id,
+                    attacker: unit.owner,
+                    damage: damage,
+                    towerOwner: towerOwner,
+                    towerHealth: gameState.towers[towerOwner]
+                }));
+            }
         }
-        else if (unit.owner !== gameState.host && unit.position > -5) {
-            updated = true;
-            unit.position -= speed / tickRate;
+        else {
+            if (unit.owner === gameState.host && unit.position < 5 - range) {
+                unit.position += speed / tickRate;
+                updated = true;
+            }
+            else if (unit.owner !== gameState.host && unit.position > -5 + range) {
+                unit.position -= speed / tickRate;
+                updated = true;
+            }
+        }
+        if (unit.attackTimer > 0) {
+            unit.attackTimer -= 1 / tickRate;
         }
         if (updated)
             updates.push({
@@ -142,6 +168,13 @@ function updateUnitPositions(state, dispatcher) {
     if (updates.length > 0) {
         dispatcher.broadcastMessage(7, JSON.stringify({ type: "unit_positions", updates: updates }));
     }
+}
+function getOpponentId(userId, state) {
+    for (var id in state.presences) {
+        if (id !== userId)
+            return id;
+    }
+    return "";
 }
 function allReady(state) {
     for (var userId in state.ready) {

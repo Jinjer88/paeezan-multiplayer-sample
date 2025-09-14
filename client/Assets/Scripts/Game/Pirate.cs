@@ -15,18 +15,19 @@ public class Pirate : MonoBehaviour
     private SkinnedMeshRenderer meshRenderer;
     private Canvas healthBarCanvas;
     private Slider healthSlider;
+    private string pirateType;
 
-    private const string speedAnimParamName = "Speed";
     private const string danceAnimParamName = "Dance";
     private const string danceRandomizerParamName = "DanceRandomizer";
     private const string dieAnimParamName = "Dead";
-    private const string attackAnimParamName = "Attack";
-    private const string attackingAnimParamName = "Attacking";
-    private const string pistolAnimParamName = "Pistol";
 
     public int CurrentHealth { get; set; }
     public int MaxHealth { get; set; }
     public bool IsMine { get; set; }
+    public float AttackTimer { get; set; }
+
+    public Animator Animator => animator;
+    public string PirateType => pirateType;
 
     private void Awake()
     {
@@ -47,8 +48,9 @@ public class Pirate : MonoBehaviour
             currentState.OnStay(this);
     }
 
-    public void InitUnit(bool isMine, int health, Material mat)
+    public void InitUnit(bool isMine, int health, Material mat, string type)
     {
+        pirateType = type;
         IsMine = isMine;
         meshRenderer.material = mat;
         MaxHealth = health;
@@ -59,6 +61,9 @@ public class Pirate : MonoBehaviour
 
     public void SwitchState(PirateState newState)
     {
+        if (currentState != null && currentState.name == newState.name)
+            return;
+
         if (currentState != null)
             currentState.OnExit(this);
 
@@ -78,10 +83,5 @@ public class Pirate : MonoBehaviour
         animator.speed = Random.Range(0.9f, 1.25f);
         animator.SetFloat(danceRandomizerParamName, random);
         animator.SetBool(danceAnimParamName, true);
-    }
-
-    public void PlayRunAnimation()
-    {
-        animator.SetFloat(speedAnimParamName, 1f);
     }
 }

@@ -26,9 +26,10 @@ public class UnitsConfig
 public class UnitConfig
 {
     public int health;
-    public int attack;
+    public int attackDamage;
+    public float attackSpeed;
+    public float attackRange;
     public int cost;
-    public float speed;
-    public float range;
+    public float moveSpeed;
     public float cooldown;
 }

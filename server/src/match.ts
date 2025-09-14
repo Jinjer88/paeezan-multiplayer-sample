@@ -22,12 +22,15 @@ function matchJoin(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
     });
 
     const playerNames = [];
+    const playerIDs = [];
     for (var userId in state.presences) {
         playerNames.push(state.presences[userId].username);
+        playerIDs.push(userId);
     }
     dispatcher.broadcastMessage(4, JSON.stringify({
         type: "lobby_update",
-        players: playerNames
+        playerNames: playerNames,
+        playerIDs: playerIDs
     }));
 
     if (Object.keys(state.presences).length === 2) {
@@ -70,6 +73,10 @@ function matchTerminate(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nk
 }
 
 function matchLoop(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkruntime.Nakama, dispatcher: nkruntime.MatchDispatcher, tick: number, state: nkruntime.MatchState, messages: nkruntime.MatchMessage[]): { state: nkruntime.MatchState } | null {
+    if (state.winner) {
+        return { state };
+    }
+
     for (const m of messages) {
         if (m.opCode === 2) {
             state.ready[m.sender.userId] = true;
@@ -98,7 +105,7 @@ function matchLoop(ctx: nkruntime.Context, logger: nkruntime.Logger, nk: nkrunti
         }
 
         updatePlayersMana(state);
-        updateUnitPositions(state, dispatcher);
+        updateUnits(state, dispatcher);
     }
 
     return { state };
@@ -122,22 +129,45 @@ function updatePlayersMana(state: nkruntime.MatchState) {
     }
 }
 
-function updateUnitPositions(state: nkruntime.MatchState, dispatcher: nkruntime.MatchDispatcher) {
+function updateUnits(state: nkruntime.MatchState, dispatcher: nkruntime.MatchDispatcher) {
     const gameState = state as unknown as GameState;
     const updates: { id: number, position: number }[] = [];
 
     for (let i = 0; i < gameState.units.length; i++) {
         const unit = gameState.units[i];
-        const speed = gameState.gameConfig.units[unit.type].speed;
+        const speed = gameState.gameConfig.units[unit.type].moveSpeed;
+        const range = gameState.gameConfig.units[unit.type].attackRange;
+        const damage = gameState.gameConfig.units[unit.type].attackDamage;
 
         let updated = false;
+        let enemyTowerPos = unit.owner === gameState.host ? 5 : -5;
+        let towerOwner = unit.owner === gameState.host ? getOpponentId(unit.owner, gameState) : gameState.host;
 
-        if (unit.owner === gameState.host && unit.position < 5) {
-            unit.position += speed / tickRate;
-            updated = true;
-        } else if (unit.owner !== gameState.host && unit.position > -5) {
-            updated = true;
-            unit.position -= speed / tickRate;
+        if (Math.abs(unit.position - enemyTowerPos) <= range) {
+            if (unit.attackTimer <= 0) {
+                gameState.towers[towerOwner] -= damage;
+                unit.attackTimer = gameState.gameConfig.units[unit.type].attackSpeed;
+                dispatcher.broadcastMessage(8, JSON.stringify({
+                    type: "tower_attack",
+                    unitId: unit.id,
+                    attacker: unit.owner,
+                    damage: damage,
+                    towerOwner: towerOwner,
+                    towerHealth: gameState.towers[towerOwner]
+                }));
+            }
+        } else {
+            if (unit.owner === gameState.host && unit.position < 5 - range) {
+                unit.position += speed / tickRate;
+                updated = true;
+            } else if (unit.owner !== gameState.host && unit.position > -5 + range) {
+                unit.position -= speed / tickRate;
+                updated = true;
+            }
+        }
+
+        if (unit.attackTimer > 0) {
+            unit.attackTimer -= 1 / tickRate;
         }
 
         if (updated)
@@ -147,9 +177,17 @@ function updateUnitPositions(state: nkruntime.MatchState, dispatcher: nkruntime.
             });
     }
 
+
     if (updates.length > 0) {
         dispatcher.broadcastMessage(7, JSON.stringify({ type: "unit_positions", updates }));
     }
+}
+
+function getOpponentId(userId: string, state: GameState): string {
+    for (const id in state.presences) {
+        if (id !== userId) return id;
+    }
+    return "";
 }
 
 function allReady(state: nkruntime.MatchState): boolean {
@@ -192,8 +230,8 @@ interface GameConfig {
         attack: number;
     };
     units: {
-        melee: { health: number; attack: number; cost: number; speed: number; range: number; };
-        ranged: { health: number; attack: number; cost: number; speed: number; range: number; };
+        melee: UnitConfig;
+        ranged: UnitConfig;
     };
 }
 
@@ -215,6 +253,17 @@ interface GameState {
     manas: { [userId: string]: number };
     meleeCooldowns: { [userId: string]: number };
     rangedCooldowns: { [userId: string]: number };
-    host?: string;
+    host: string;
     gameConfig: GameConfig;
+    winner?: string;
+}
+
+interface UnitConfig {
+    health: number;
+    attackDamage: number;
+    attackSpeed: number;
+    attackRange: number;
+    cost: number;
+    moveSpeed: number;
+    cooldown: number;
 }
