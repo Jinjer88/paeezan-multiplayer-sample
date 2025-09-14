@@ -1,4 +1,6 @@
+using DG.Tweening;
 using System;
+using System.Collections;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,6 +17,8 @@ public class UIMatchPage : UIPage
     [SerializeField] private TextMeshProUGUI myTowerHealthText;
     [SerializeField] private Slider opponentTowerHealthSlider;
     [SerializeField] private TextMeshProUGUI opponentTowerHealthText;
+    [SerializeField] private Transform countdownContainer;
+    [SerializeField] private TextMeshProUGUI countdownText;
 
     private void Update()
     {
@@ -27,6 +31,9 @@ public class UIMatchPage : UIPage
 
     public override void OnPageOpen()
     {
+        countdownText.text = string.Empty;
+        countdownContainer.gameObject.SetActive(true);
+
         meleeCard.InitCard(gameController.GameConfig.units.melee.cost, SpawnMelee);
         rangedCard.InitCard(gameController.GameConfig.units.ranged.cost, SpawnRanged);
         manaProgress.fillAmount = 1;
@@ -47,12 +54,27 @@ public class UIMatchPage : UIPage
 
         gameController.OnUnitSpawned += OnUnitSpawned;
         gameController.OnTowerAttack += OnTowerAttack;
+
+        StartCoroutine(StartCountdown());
     }
 
     public override void OnPageClose()
     {
         gameController.OnUnitSpawned -= OnUnitSpawned;
         gameController.OnTowerAttack -= OnTowerAttack;
+    }
+
+    private IEnumerator StartCountdown()
+    {
+        yield return new WaitForSeconds(0.5f);
+        for (int i = 3; i >= 1; i--)
+        {
+            countdownText.text = i.ToString();
+            countdownText.transform.localScale = Vector3.one;
+            countdownText.transform.DOScale(0, 1f).SetEase(Ease.InBack);
+            yield return new WaitForSeconds(1f);
+        }
+        countdownContainer.gameObject.SetActive(false);
     }
 
     private void OnTowerAttack(int health, bool isMine)

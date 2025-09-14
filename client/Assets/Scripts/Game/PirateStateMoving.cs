@@ -17,5 +17,7 @@ public class PirateStateMoving : PirateState
 
     public override void OnStay(Pirate pirate)
     {
+        if (pirate.CurrentHealth <= 0)
+            pirate.SwitchState(pirate.dyingState);
     }
 }
