@@ -131,38 +131,81 @@ function updatePlayersMana(state: nkruntime.MatchState) {
 
 function updateUnits(state: nkruntime.MatchState, dispatcher: nkruntime.MatchDispatcher) {
     const gameState = state as unknown as GameState;
-    const updates: { id: number, position: number }[] = [];
+    const updates: { id: number, position: number, health?: number }[] = [];
 
     for (let i = 0; i < gameState.units.length; i++) {
         const unit = gameState.units[i];
-        const speed = gameState.gameConfig.units[unit.type].moveSpeed;
-        const range = gameState.gameConfig.units[unit.type].attackRange;
-        const damage = gameState.gameConfig.units[unit.type].attackDamage;
+
+        if (unit.health <= 0) {
+            continue;
+        }
+
+        const config = gameState.gameConfig.units[unit.type];
+        const speed = config.moveSpeed;
+        const range = config.attackRange;
+        const damage = config.attackDamage;
 
         let updated = false;
         let enemyTowerPos = unit.owner === gameState.host ? 5 : -5;
         let towerOwner = unit.owner === gameState.host ? getOpponentId(unit.owner, gameState) : gameState.host;
+        let enemyInRange = false;
 
-        if (Math.abs(unit.position - enemyTowerPos) <= range) {
-            if (unit.attackTimer <= 0) {
-                gameState.towers[towerOwner] -= damage;
-                unit.attackTimer = gameState.gameConfig.units[unit.type].attackSpeed;
-                dispatcher.broadcastMessage(8, JSON.stringify({
-                    type: "tower_attack",
-                    unitId: unit.id,
-                    attacker: unit.owner,
-                    damage: damage,
-                    towerOwner: towerOwner,
-                    towerHealth: gameState.towers[towerOwner]
-                }));
+        // Check enemy units
+        for (let j = 0; j < gameState.units.length; j++) {
+            const other = gameState.units[j];
+            if (other.owner !== unit.owner && other.health > 0) {
+                const dist = Math.abs(unit.position - other.position);
+                const inFront = (unit.owner === gameState.host) ? other.position > unit.position : other.position < unit.position;
 
-                if (gameState.towers[towerOwner] <= 0) {
-                    gameState.winner = unit.owner;
-                    dispatcher.broadcastMessage(10, JSON.stringify({ type: "game_over", winner: gameState.winner }));
-                    return;
+                if (dist <= range && inFront) {
+                    enemyInRange = true;
+                    if (unit.attackTimer <= 0) {
+                        other.health -= damage;
+                        unit.attackTimer = config.attackSpeed;
+                        dispatcher.broadcastMessage(9, JSON.stringify({
+                            type: "unit_attack",
+                            attacker: unit.id,
+                            target: other.id,
+                            damage: damage,
+                            targetHealth: other.health
+                        }));
+
+                        if (other.health <= 0) {
+                            dispatcher.broadcastMessage(11, JSON.stringify({ type: "unit_dead", unitId: other.id }));
+                        }
+                    }
+                    break;
                 }
             }
-        } else {
+        }
+
+        // If no enemy unit in range, check tower
+        if (!enemyInRange) {
+            if (Math.abs(unit.position - enemyTowerPos) <= range) {
+                if (unit.attackTimer <= 0) {
+                    gameState.towers[towerOwner] -= damage;
+                    unit.attackTimer = config.attackSpeed;
+                    dispatcher.broadcastMessage(8, JSON.stringify({
+                        type: "tower_attack",
+                        unitId: unit.id,
+                        attacker: unit.owner,
+                        damage: damage,
+                        towerOwner: towerOwner,
+                        towerHealth: gameState.towers[towerOwner]
+                    }));
+
+                    if (gameState.towers[towerOwner] <= 0) {
+                        gameState.winner = unit.owner;
+                        dispatcher.broadcastMessage(10, JSON.stringify({ type: "game_over", winner: gameState.winner }));
+                        return;
+                    }
+                }
+                enemyInRange = true;
+            }
+        }
+
+        // If no enemy in range, move forward
+        if (!enemyInRange) {
             if (unit.owner === gameState.host && unit.position < 5 - range) {
                 unit.position += speed / tickRate;
                 updated = true;
@@ -176,13 +219,14 @@ function updateUnits(state: nkruntime.MatchState, dispatcher: nkruntime.MatchDis
             unit.attackTimer -= 1 / tickRate;
         }
 
-        if (updated)
+        if (updated || unit.health <= 0) {
             updates.push({
                 id: unit.id,
-                position: unit.position
+                position: unit.position,
+                health: unit.health
             });
+        }
     }
-
 
     if (updates.length > 0) {
         dispatcher.broadcastMessage(7, JSON.stringify({ type: "unit_positions", updates }));

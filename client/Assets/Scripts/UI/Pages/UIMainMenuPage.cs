@@ -21,6 +21,9 @@ public class UIMainMenuPage : UIPage
 
     public override void OnPageOpen()
     {
+        foreach (Transform child in matchListParent)
+            Destroy(child.gameObject);
+
         gameController.IsHost = false;
         errorMessageText.text = string.Empty;
         matchCodeInputField.text = string.Empty;

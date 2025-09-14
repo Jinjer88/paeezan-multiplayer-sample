@@ -1,7 +1,6 @@
 using DG.Tweening;
 using Nakama;
 using Nakama.TinyJson;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -134,6 +133,7 @@ public class GameStateHandler : MonoBehaviour
                     pirate.transform.DOKill();
                     pirate.transform.DOMoveZ(targetPos, 0.2f).SetEase(Ease.Linear);
                     pirate.SwitchState(pirate.movingState);
+                    pirate.UpdateHealth(positionUpdate[i].health);
                 }
             }
         }
@@ -149,6 +149,27 @@ public class GameStateHandler : MonoBehaviour
                     bool isMine = attackUpdate.towerOwner == serverController.Session.UserId;
                     gameController.OnTowerAttack?.Invoke(attackUpdate.towerHealth, isMine);
                 }
+            }
+        }
+        else if (code == OpCode.UnitAttackUpdate)
+        {
+            var unitAttack = JsonParser.FromJson<MatchUnitAttackResponseModel>(stateJson);
+            if (units.TryGetValue(unitAttack.attacker, out Pirate attackerPirate) && units.TryGetValue(unitAttack.target, out Pirate targetPirate))
+            {
+                attackerPirate.SwitchState(attackerPirate.attackingState);
+                targetPirate.UpdateHealth(unitAttack.targetHealth);
+            }
+        }
+        else if (code == OpCode.UnitDead)
+        {
+            var unitDead = JsonParser.FromJson<MatchUnitDeadResponseModel>(stateJson);
+            if (units.TryGetValue(unitDead.unitId, out Pirate deadPirate))
+            {
+                deadPirate.SwitchState(deadPirate.dyingState);
+                deadPirate.transform.DOMoveY(-5f, 3f).SetDelay(6f).OnComplete(() =>
+                {
+                    deadPirate.gameObject.SetActive(false);
+                });
             }
         }
         else if (code == OpCode.GameOver)

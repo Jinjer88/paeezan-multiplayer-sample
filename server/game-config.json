@@ -9,7 +9,7 @@
             "health": 25,
             "attackDamage": 3,
             "attackSpeed": 1.5,
-            "attackRange": 0.1,
+            "attackRange": 0.3,
             "cost": 2,
             "moveSpeed": 1,
             "cooldown": 3

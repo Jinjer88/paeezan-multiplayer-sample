@@ -129,32 +129,65 @@ function updateUnits(state, dispatcher) {
     var updates = [];
     for (var i = 0; i < gameState.units.length; i++) {
         var unit = gameState.units[i];
-        var speed = gameState.gameConfig.units[unit.type].moveSpeed;
-        var range = gameState.gameConfig.units[unit.type].attackRange;
-        var damage = gameState.gameConfig.units[unit.type].attackDamage;
+        if (unit.health <= 0) {
+            continue;
+        }
+        var config = gameState.gameConfig.units[unit.type];
+        var speed = config.moveSpeed;
+        var range = config.attackRange;
+        var damage = config.attackDamage;
         var updated = false;
         var enemyTowerPos = unit.owner === gameState.host ? 5 : -5;
         var towerOwner = unit.owner === gameState.host ? getOpponentId(unit.owner, gameState) : gameState.host;
-        if (Math.abs(unit.position - enemyTowerPos) <= range) {
-            if (unit.attackTimer <= 0) {
-                gameState.towers[towerOwner] -= damage;
-                unit.attackTimer = gameState.gameConfig.units[unit.type].attackSpeed;
-                dispatcher.broadcastMessage(8, JSON.stringify({
-                    type: "tower_attack",
-                    unitId: unit.id,
-                    attacker: unit.owner,
-                    damage: damage,
-                    towerOwner: towerOwner,
-                    towerHealth: gameState.towers[towerOwner]
-                }));
-                if (gameState.towers[towerOwner] <= 0) {
-                    gameState.winner = unit.owner;
-                    dispatcher.broadcastMessage(10, JSON.stringify({ type: "game_over", winner: gameState.winner }));
-                    return;
+        var enemyInRange = false;
+        for (var j = 0; j < gameState.units.length; j++) {
+            var other = gameState.units[j];
+            if (other.owner !== unit.owner && other.health > 0) {
+                var dist = Math.abs(unit.position - other.position);
+                var inFront = (unit.owner === gameState.host) ? other.position > unit.position : other.position < unit.position;
+                if (dist <= range && inFront) {
+                    enemyInRange = true;
+                    if (unit.attackTimer <= 0) {
+                        other.health -= damage;
+                        unit.attackTimer = config.attackSpeed;
+                        dispatcher.broadcastMessage(9, JSON.stringify({
+                            type: "unit_attack",
+                            attacker: unit.id,
+                            target: other.id,
+                            damage: damage,
+                            targetHealth: other.health
+                        }));
+                        if (other.health <= 0) {
+                            dispatcher.broadcastMessage(11, JSON.stringify({ type: "unit_dead", unitId: other.id }));
+                        }
+                    }
+                    break;
                 }
             }
         }
-        else {
+        if (!enemyInRange) {
+            if (Math.abs(unit.position - enemyTowerPos) <= range) {
+                if (unit.attackTimer <= 0) {
+                    gameState.towers[towerOwner] -= damage;
+                    unit.attackTimer = config.attackSpeed;
+                    dispatcher.broadcastMessage(8, JSON.stringify({
+                        type: "tower_attack",
+                        unitId: unit.id,
+                        attacker: unit.owner,
+                        damage: damage,
+                        towerOwner: towerOwner,
+                        towerHealth: gameState.towers[towerOwner]
+                    }));
+                    if (gameState.towers[towerOwner] <= 0) {
+                        gameState.winner = unit.owner;
+                        dispatcher.broadcastMessage(10, JSON.stringify({ type: "game_over", winner: gameState.winner }));
+                        return;
+                    }
+                }
+                enemyInRange = true;
+            }
+        }
+        if (!enemyInRange) {
             if (unit.owner === gameState.host && unit.position < 5 - range) {
                 unit.position += speed / tickRate;
                 updated = true;
@@ -167,11 +200,13 @@ function updateUnits(state, dispatcher) {
         if (unit.attackTimer > 0) {
             unit.attackTimer -= 1 / tickRate;
         }
-        if (updated)
+        if (updated || unit.health <= 0) {
             updates.push({
                 id: unit.id,
-                position: unit.position
+                position: unit.position,
+                health: unit.health
             });
+        }
     }
     if (updates.length > 0) {
         dispatcher.broadcastMessage(7, JSON.stringify({ type: "unit_positions", updates: updates }));

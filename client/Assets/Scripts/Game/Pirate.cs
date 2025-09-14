@@ -74,7 +74,7 @@ public class Pirate : MonoBehaviour
     public void UpdateHealth(int health)
     {
         CurrentHealth = health;
-        healthSlider.value = health / MaxHealth;
+        healthSlider.value = (float)health / MaxHealth;
     }
 
     public void PlayRandomDanceAnimation()
@@ -83,5 +83,10 @@ public class Pirate : MonoBehaviour
         animator.speed = Random.Range(0.9f, 1.25f);
         animator.SetFloat(danceRandomizerParamName, random);
         animator.SetBool(danceAnimParamName, true);
+    }
+
+    public void HideHealthBar()
+    {
+        healthBarCanvas.enabled = false;
     }
 }

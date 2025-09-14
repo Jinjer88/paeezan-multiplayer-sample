@@ -218,6 +218,7 @@ public class UnitPositionUpdateModel
 {
     public int id;
     public float position;
+    public int health;
 }
 
 [SerializeField]
@@ -238,6 +239,23 @@ public class MatchGameOverResponseModel
     public string winner;
 }
 
+[SerializeField]
+public class MatchUnitAttackResponseModel
+{
+    public string type;
+    public int attacker;
+    public int target;
+    public int damage;
+    public int targetHealth;
+}
+
+[SerializeField] 
+public class MatchUnitDeadResponseModel
+{
+    public string type;
+    public int unitId;
+}
+
 public enum OpCode
 {
     MatchConfig = 0,
@@ -250,7 +268,8 @@ public enum OpCode
     UnitPositionUpdates = 7,
     TowerAttackUpdate = 8,
     UnitAttackUpdate = 9,
-    GameOver = 10
+    GameOver = 10,
+    UnitDead = 11
 }
 
 [Serializable]

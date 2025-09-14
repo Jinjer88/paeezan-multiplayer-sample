@@ -7,6 +7,7 @@ public class PirateStateDying : PirateState
 
     public override void OnEnter(Pirate pirate)
     {
+        pirate.HideHealthBar();
         pirate.Animator.SetBool(dieAnimParamName, true);
     }
 
