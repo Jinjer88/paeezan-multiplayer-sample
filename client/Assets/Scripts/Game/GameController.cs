@@ -23,6 +23,14 @@ public class GameController : ScriptableObject
         IdUsernamePairs = new List<IdUsernamePair>();
         IsHost = false;
     }
+
+    private void OnDisable()
+    {
+        MatchCode = string.Empty;
+        MatchId = string.Empty;
+        IdUsernamePairs = new List<IdUsernamePair>();
+        IsHost = false;
+    }
 }
 
 public struct IdUsernamePair

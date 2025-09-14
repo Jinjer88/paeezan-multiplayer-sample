@@ -13,6 +13,12 @@ public class UIController : ScriptableObject
         currentPage = null;
     }
 
+    private void OnDisable()
+    {
+        pages = new Dictionary<string, UIPage>();
+        currentPage = null;
+    }
+
     public void AddPage(UIPage newPage)
     {
         string pageName = newPage.GetType().Name;
@@ -26,7 +32,7 @@ public class UIController : ScriptableObject
     public void OpenPage<T>() where T : UIPage
     {
         string pageName = typeof(T).Name;
-        Debug.Log($"UIController - OpenPage, target page: {pageName}, current page: {currentPage?.name}");
+        Debug.Log($"UIController - OpenPage, target page: {pageName}");
         if (pages.TryGetValue(pageName, out UIPage pageToOpen))
         {
             if (currentPage != null)

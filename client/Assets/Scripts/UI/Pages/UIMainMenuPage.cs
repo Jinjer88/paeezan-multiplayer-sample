@@ -2,6 +2,7 @@ using Nakama;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class UIMainMenuPage : UIPage
@@ -44,13 +45,15 @@ public class UIMainMenuPage : UIPage
         createMatch.onClick.RemoveListener(CreateMatch);
         joinMatch.onClick.RemoveListener(CheckMatchCode);
         leaderboardButton.onClick.RemoveListener(ShowLeaderboard);
-        newUserButton.onClick.AddListener(LogOut);
+        newUserButton.onClick.RemoveListener(LogOut);
     }
 
-    private void LogOut()
+    private async void LogOut()
     {
-        _ = serverController.LogOut();
-        uiController.OpenPage<UIRegisterPage>();
+        PlayerPrefs.DeleteKey("username");
+        uiController.OpenPage<UIConnectionPage>();
+        await serverController.CloseSocket();
+        await serverController.LogOut();
     }
 
     private void ShowLeaderboard()

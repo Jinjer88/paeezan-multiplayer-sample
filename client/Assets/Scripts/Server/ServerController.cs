@@ -27,8 +27,6 @@ public class ServerController : ScriptableObject
             Debug.Log($"ServerController - Authenticate, user authenticated with username: {nickname}");
             Account = await Client.GetAccountAsync(Session);
             await ConnectSocket();
-            Socket.ReceivedMatchPresence += OnPlayerJoined;
-            Socket.ReceivedMatchState += OnMatchState;
             return true;
         }
         catch (Exception e)
@@ -55,6 +53,8 @@ public class ServerController : ScriptableObject
     {
         bool useMainThread = true;
         Socket = Client.NewSocket(useMainThread);
+        Socket.ReceivedMatchPresence += OnPlayerJoined;
+        Socket.ReceivedMatchState += OnMatchState;
 
         bool appearOnline = true;
         int connectionTimeout = 30;
@@ -187,6 +187,11 @@ public class ServerController : ScriptableObject
         {
             Debug.LogError($"ServerController - LeaveMatch, failed to leave match {matchId}: {ex}");
         }
+    }
+
+    public async Task CloseSocket()
+    {
+        await Socket.CloseAsync();
     }
 
     private void OnSocketClosed()
