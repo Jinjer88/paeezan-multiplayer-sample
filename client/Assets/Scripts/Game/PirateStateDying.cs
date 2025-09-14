@@ -4,9 +4,11 @@ using UnityEngine;
 public class PirateStateDying : PirateState
 {
     private const string dieAnimParamName = "Dead";
+    private const string speedAnimParamName = "Speed";
 
     public override void OnEnter(Pirate pirate)
     {
+        pirate.Animator.SetFloat(speedAnimParamName, 0);
         pirate.HideHealthBar();
         pirate.Animator.SetBool(dieAnimParamName, true);
     }
